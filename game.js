@@ -893,6 +893,7 @@ class Game {
     
     validateAndPlaceTargets(candidatePositions, targetCount) {
         const validatedTargets = [];
+        const minTargetDistance = 80; // Minimum distance between targets
         
         for (const pos of candidatePositions) {
             // Skip if position is outside canvas bounds
@@ -908,6 +909,13 @@ class Game {
             
             if (!isSafe) continue;
             
+            // Ensure minimum distance from existing targets
+            const tooCloseToOtherTarget = validatedTargets.some(existingTarget => 
+                new Vector2(pos.x, pos.y).distance(new Vector2(existingTarget.x, existingTarget.y)) < minTargetDistance
+            );
+            
+            if (tooCloseToOtherTarget) continue;
+            
             // Test reachability with trajectory simulation
             if (this.isTargetReachable(pos)) {
                 validatedTargets.push(pos);
@@ -922,19 +930,48 @@ class Game {
         while (validatedTargets.length < targetCount && fallbackAttempts < maxFallbackAttempts) {
             const fallbackPos = this.generateFallbackTarget();
             if (fallbackPos && this.isTargetReachable(fallbackPos)) {
-                validatedTargets.push(fallbackPos);
+                // Check distance from existing targets
+                const tooCloseToOtherTarget = validatedTargets.some(existingTarget => 
+                    new Vector2(fallbackPos.x, fallbackPos.y).distance(new Vector2(existingTarget.x, existingTarget.y)) < minTargetDistance
+                );
+                
+                if (!tooCloseToOtherTarget) {
+                    validatedTargets.push(fallbackPos);
+                }
             }
             fallbackAttempts++;
         }
         
         // If still not enough targets, add simple safe targets to ensure game is playable
-        while (validatedTargets.length < targetCount) {
+        let simpleTargetAttempts = 0;
+        const maxSimpleAttempts = 20;
+        
+        while (validatedTargets.length < targetCount && simpleTargetAttempts < maxSimpleAttempts) {
             const safePos = this.generateSimpleTarget();
             if (safePos) {
-                validatedTargets.push(safePos);
-            } else {
-                break; // Prevent infinite loop
+                // Check distance from existing targets (reduce distance requirement if we're struggling)
+                const adjustedMinDistance = validatedTargets.length > 0 ? 
+                    Math.max(40, minTargetDistance - simpleTargetAttempts * 2) : 0;
+                
+                const tooCloseToOtherTarget = validatedTargets.some(existingTarget => 
+                    new Vector2(safePos.x, safePos.y).distance(new Vector2(existingTarget.x, existingTarget.y)) < adjustedMinDistance
+                );
+                
+                if (!tooCloseToOtherTarget || validatedTargets.length === 0) {
+                    validatedTargets.push(safePos);
+                }
             }
+            simpleTargetAttempts++;
+        }
+        
+        // Emergency fallback: place at least one target if none were placed
+        if (validatedTargets.length === 0) {
+            // Place a simple target at a safe position
+            const emergencyPos = { 
+                x: Math.min(this.canvas.width - 100, 200), 
+                y: Math.min(this.canvas.height - 100, 200) 
+            };
+            validatedTargets.push(emergencyPos);
         }
         
         // Create target objects
@@ -959,7 +996,7 @@ class Game {
         }
         
         let reachableTrajectories = 0;
-        const maxAllowedSolutions = 3; // Limit solutions to maintain difficulty
+        const maxAllowedSolutions = 5; // Allow more solutions since we relaxed deflection requirements
         
         for (const angle of testAngles) {
             // Create test bullet
@@ -981,11 +1018,11 @@ class Game {
                 const oldVelocity = new Vector2(testBullet.velocity.x, testBullet.velocity.y);
                 testBullet.update(this.spaceBodies, stepTime, this.canvas.width, this.canvas.height);
                 
-                // Check if gravity significantly changed trajectory (45 degree deflection)
+                // Check if gravity changed trajectory (15 degree deflection)
                 if (step > 10) {
                     const currentDirection = testBullet.velocity.normalize();
                     const dotProduct = initialDirection.x * currentDirection.x + initialDirection.y * currentDirection.y;
-                    if (dotProduct < 0.7) { // ~45 degree change
+                    if (dotProduct < 0.966) { // ~15 degree change (cos(15°) ≈ 0.966)
                         usedGravityAssist = true;
                     }
                 }
