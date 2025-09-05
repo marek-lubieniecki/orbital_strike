@@ -1,4 +1,4 @@
-# Orbit Strike
+# Orbital Strike
 
 A physics-based space shooter game where gravity affects your rocket trajectories. Use gravitational fields from space bodies to curve your shots around obstacles and hit targets!
 
@@ -31,7 +31,7 @@ A physics-based space shooter game where gravity affects your rocket trajectorie
 
 ## 🌐 Play Online
 
-[Play Orbit Strike](https://your-username.github.io/orbit_strike/)
+[Play Orbital Strike](https://your-username.github.io/orbit_strike/)
 
 ---
 
