@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Orbital Strike</title>
     <style>
         * {
@@ -21,6 +21,10 @@
             overflow: hidden;
             touch-action: none;
             margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100vh;
+            position: fixed;
         }
 
         #gameWrapper {
@@ -140,33 +144,48 @@
 
         @media (max-width: 768px), (orientation: portrait) {
             body {
+                padding: 0;
+                align-items: flex-start;
+            }
+            
+            #gameWrapper {
+                width: 100%;
+                height: 100vh;
+                gap: 5px;
                 padding: 5px;
+                box-sizing: border-box;
             }
             
             #ui {
-                font-size: 16px;
+                font-size: 14px;
+                top: 5px;
+                left: 5px;
             }
             
             #instructions {
-                font-size: 12px;
-                bottom: 5px;
+                font-size: 11px;
+                bottom: 2px;
+                left: 50%;
+                transform: translateX(-50%);
             }
             
             #sidebar {
                 width: 100%;
                 max-width: none;
-                max-height: 180px;
-                padding: 8px;
-                margin-bottom: 10px;
+                max-height: 140px;
+                padding: 6px;
+                margin-bottom: 5px;
+                font-size: 12px;
             }
             
             #sidebar h3 {
-                font-size: 16px;
-                margin-bottom: 8px;
+                font-size: 14px;
+                margin-bottom: 6px;
             }
             
             #gameContainer {
                 border-width: 1px;
+                flex: 1;
             }
         }
 

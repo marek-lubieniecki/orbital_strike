@@ -570,18 +570,24 @@ class Game {
 
     setupCanvas() {
         const container = document.getElementById('gameContainer');
-        const maxWidth = window.innerWidth - 40;
-        const maxHeight = window.innerHeight - 40;
+        const availableWidth = window.innerWidth;
+        const availableHeight = window.innerHeight;
         
         // Check if device is mobile/vertical orientation
         const isVertical = window.innerHeight > window.innerWidth || this.isMobile;
         
-        if (isVertical) {
-            // Vertical/mobile layout - portrait orientation
-            this.canvas.width = Math.min(400, maxWidth);
-            this.canvas.height = Math.min(700, maxHeight);
+        if (isVertical || this.isMobile) {
+            // Mobile layout - use almost full screen with small margins
+            const margin = 10;
+            this.canvas.width = Math.min(400, availableWidth - margin);
+            
+            // Reserve space for sidebar (150px) and some margin
+            const sidebarHeight = 150;
+            this.canvas.height = Math.min(700, availableHeight - sidebarHeight - margin);
         } else {
-            // Desktop/horizontal layout
+            // Desktop/horizontal layout  
+            const maxWidth = availableWidth - 40;
+            const maxHeight = availableHeight - 40;
             this.canvas.width = Math.min(800, maxWidth);
             this.canvas.height = Math.min(600, maxHeight);
         }
