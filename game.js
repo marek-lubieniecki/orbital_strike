@@ -556,6 +556,13 @@ class Game {
         this.levelCompleted = false;
         this.initialized = false;
         
+        // Rocket tracking
+        this.rocketsLaunched = 0;
+        this.levelRockets = 0;
+        
+        // Completion message
+        this.completionMessage = null;
+        
         this.mousePosition = new Vector2(0, 0);
         this.isMobile = this.checkMobile();
         
@@ -662,6 +669,9 @@ class Game {
         this.spaceBodies = [];
         this.bullets = [];
         this.targets = [];
+        
+        // Reset level rocket counter
+        this.levelRockets = 0;
         
         // Position cannon appropriately for screen orientation
         const isVertical = this.canvas.height > this.canvas.width;
@@ -1304,11 +1314,25 @@ class Game {
     shoot() {
         const bullet = this.cannon.shoot();
         this.bullets.push(bullet);
+        
+        // Increment rocket counters
+        this.rocketsLaunched++;
+        this.levelRockets++;
     }
 
     update(deltaTime) {
         if (this.cannon) {
             this.cannon.aimAt(this.mousePosition);
+        }
+
+        // Update completion message timer
+        if (this.completionMessage) {
+            this.completionMessage.timer -= deltaTime;
+            this.completionMessage.alpha = Math.max(0, this.completionMessage.timer / 1.5);
+            
+            if (this.completionMessage.timer <= 0) {
+                this.completionMessage = null;
+            }
         }
 
 
@@ -1341,7 +1365,18 @@ class Game {
         // Check for level completion
         if (this.targets.every(target => target.hit) && !this.levelCompleted) {
             this.levelCompleted = true;
-            console.log('Level', this.level, 'completed! Moving to level', this.level + 1);
+            
+            // Calculate efficiency bonus
+            const efficiencyBonus = this.calculateEfficiencyBonus();
+            this.score += efficiencyBonus;
+            
+            // Show completion message with efficiency rating
+            const efficiencyRating = this.getEfficiencyRating();
+            console.log(`Level ${this.level} completed! Rockets used: ${this.levelRockets}, Efficiency: ${efficiencyRating}, Bonus: ${efficiencyBonus}`);
+            
+            // Display completion message
+            this.showLevelCompletionMessage(efficiencyRating, efficiencyBonus);
+            
             setTimeout(async () => {
                 this.level++;
                 await this.initializeLevel();
@@ -1373,6 +1408,11 @@ class Game {
 
         // Draw trajectory preview
         this.drawTrajectoryPreview();
+        
+        // Draw completion message
+        if (this.completionMessage) {
+            this.drawCompletionMessage();
+        }
     }
 
     drawTrajectoryPreview() {
@@ -1407,10 +1447,109 @@ class Game {
         this.ctx.restore();
     }
 
+    drawCompletionMessage() {
+        if (!this.completionMessage) return;
+        
+        this.ctx.save();
+        
+        // Semi-transparent overlay
+        this.ctx.fillStyle = `rgba(0, 0, 0, ${this.completionMessage.alpha * 0.7})`;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Main completion text
+        this.ctx.globalAlpha = this.completionMessage.alpha;
+        this.ctx.fillStyle = '#50e3c2';
+        this.ctx.font = 'bold 36px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('LEVEL COMPLETE!', this.canvas.width / 2, this.canvas.height / 2 - 60);
+        
+        // Efficiency rating
+        this.ctx.fillStyle = '#ffff88';
+        this.ctx.font = 'bold 24px Arial';
+        this.ctx.fillText(`Efficiency: ${this.completionMessage.rating}`, this.canvas.width / 2, this.canvas.height / 2 - 20);
+        
+        // Rockets used
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = '20px Arial';
+        this.ctx.fillText(`Rockets Used: ${this.levelRockets}`, this.canvas.width / 2, this.canvas.height / 2 + 10);
+        
+        // Bonus points
+        if (this.completionMessage.bonus > 0) {
+            this.ctx.fillStyle = '#4ae24a';
+            this.ctx.font = 'bold 20px Arial';
+            this.ctx.fillText(`Efficiency Bonus: +${this.completionMessage.bonus}`, this.canvas.width / 2, this.canvas.height / 2 + 40);
+        }
+        
+        this.ctx.restore();
+    }
+
+    calculateEfficiencyBonus() {
+        const targetCount = this.targets.length;
+        const rocketsUsed = this.levelRockets;
+        
+        // Ideal rocket count (1 rocket per target)
+        const idealRockets = targetCount;
+        
+        // Calculate efficiency rating
+        let efficiencyMultiplier = 0;
+        
+        if (rocketsUsed <= idealRockets) {
+            // Perfect efficiency - maximum bonus
+            efficiencyMultiplier = 2.0;
+        } else if (rocketsUsed <= idealRockets * 1.5) {
+            // Good efficiency - good bonus
+            efficiencyMultiplier = 1.5;
+        } else if (rocketsUsed <= idealRockets * 2) {
+            // Average efficiency - small bonus
+            efficiencyMultiplier = 1.0;
+        } else if (rocketsUsed <= idealRockets * 3) {
+            // Poor efficiency - very small bonus
+            efficiencyMultiplier = 0.5;
+        } else {
+            // No efficiency bonus
+            efficiencyMultiplier = 0;
+        }
+        
+        // Base bonus per target completed
+        const baseBonus = targetCount * 50;
+        const efficiencyBonus = Math.floor(baseBonus * efficiencyMultiplier);
+        
+        return efficiencyBonus;
+    }
+
+    getEfficiencyRating() {
+        const targetCount = this.targets.length;
+        const rocketsUsed = this.levelRockets;
+        const idealRockets = targetCount;
+        
+        if (rocketsUsed <= idealRockets) {
+            return "★★★ PERFECT";
+        } else if (rocketsUsed <= idealRockets * 1.5) {
+            return "★★☆ GOOD";
+        } else if (rocketsUsed <= idealRockets * 2) {
+            return "★☆☆ AVERAGE";
+        } else if (rocketsUsed <= idealRockets * 3) {
+            return "☆☆☆ POOR";
+        } else {
+            return "--- NO RATING";
+        }
+    }
+
+    showLevelCompletionMessage(rating, bonus) {
+        // Draw completion overlay
+        this.completionMessage = {
+            rating,
+            bonus,
+            timer: 1.5, // Display for 1.5 seconds
+            alpha: 1.0
+        };
+    }
+
     updateUI() {
         document.getElementById('level').textContent = this.level;
         document.getElementById('score').textContent = this.score;
         document.getElementById('targets').textContent = this.targets.filter(t => !t.hit).length;
+        document.getElementById('rockets').textContent = this.levelRockets;
     }
 
     gameLoop(currentTime) {
