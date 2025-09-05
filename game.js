@@ -557,7 +557,6 @@ class Game {
         
         this.mousePosition = new Vector2(0, 0);
         this.isMobile = this.checkMobile();
-        this.hoveredBody = null;
         
         this.setupEventListeners();
         this.initializeLevel();
@@ -578,12 +577,9 @@ class Game {
         
         if (isVertical || this.isMobile) {
             // Mobile layout - use almost full screen with small margins
-            const margin = 10;
+            const margin = 20;
             this.canvas.width = Math.min(400, availableWidth - margin);
-            
-            // Reserve space for sidebar (150px) and some margin
-            const sidebarHeight = 150;
-            this.canvas.height = Math.min(700, availableHeight - sidebarHeight - margin);
+            this.canvas.height = Math.min(700, availableHeight - margin);
         } else {
             // Desktop/horizontal layout  
             const maxWidth = availableWidth - 40;
@@ -1209,73 +1205,6 @@ class Game {
         return null;
     }
     
-    updateHover() {
-        let newHoveredBody = null;
-        
-        // Check if mouse is over any celestial body
-        for (const body of this.spaceBodies) {
-            const distance = this.mousePosition.distance(body.position);
-            if (distance <= body.radius + 10) { // Small buffer for easier hovering
-                newHoveredBody = body;
-                break;
-            }
-        }
-        
-        // Update sidebar content
-        if (newHoveredBody !== this.hoveredBody) {
-            this.hoveredBody = newHoveredBody;
-            this.updateSidebar();
-        }
-    }
-    
-    updateSidebar() {
-        const bodyInfoDiv = document.getElementById('bodyInfo');
-        
-        if (!this.hoveredBody) {
-            bodyInfoDiv.innerHTML = '<div class="no-data">Hover over a celestial body to learn about it!</div>';
-            return;
-        }
-        
-        const body = this.hoveredBody;
-        const data = body.data;
-        
-        bodyInfoDiv.innerHTML = `
-            <div style="color: ${body.color}; font-size: 18px; font-weight: bold; margin-bottom: 10px;">
-                ${data.name}
-            </div>
-            
-            <div class="property">
-                <span class="property-label">Mass:</span> ${body.formatMass()}
-            </div>
-            <div class="property">
-                <span class="property-label">Diameter:</span> ${body.formatDiameter()}
-            </div>
-            <div class="property">
-                <span class="property-label">Density:</span> ${body.calculateDensity()} g/cm³
-            </div>
-            <div class="property">
-                <span class="property-label">Surface Gravity:</span> ${body.getGravitationalAcceleration()} m/s²
-            </div>
-            
-            <div style="margin: 15px 0; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 4px; font-style: italic;">
-                ${data.description}
-            </div>
-            
-            <div class="examples">
-                <h4>Real Examples:</h4>
-                <ul>
-                    ${data.realWorldExamples.map(ex => 
-                        `<li><strong>${ex.name}:</strong> ${ex.diameter} diameter, ${ex.mass}</li>`
-                    ).join('')}
-                </ul>
-            </div>
-            
-            <div class="fact">
-                <div class="fact-label">Fun Fact:</div>
-                ${body.randomFact}
-            </div>
-        `;
-    }
 
     shoot() {
         const bullet = this.cannon.shoot();
@@ -1287,8 +1216,6 @@ class Game {
             this.cannon.aimAt(this.mousePosition);
         }
 
-        // Check for hovered celestial bodies
-        this.updateHover();
 
         this.bullets.forEach(bullet => bullet.update(this.spaceBodies, deltaTime, this.canvas.width, this.canvas.height));
         this.bullets = this.bullets.filter(bullet => bullet.alive);
