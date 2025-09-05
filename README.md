@@ -31,7 +31,7 @@ A physics-based space shooter game where gravity affects your rocket trajectorie
 
 ## 🌐 Play Online
 
-[Play Orbital Strike](https://your-username.github.io/orbit_strike/)
+[Play Orbital Strike](https://marek-lubieniecki.github.io/orbital-strike/)
 
 ---
 
