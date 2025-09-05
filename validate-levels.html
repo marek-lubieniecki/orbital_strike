@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Level Validator - Orbital Strike</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #0f0;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .header {
+            text-align: center;
+            color: #0ff;
+            margin-bottom: 30px;
+        }
+        
+        .level-report {
+            background: rgba(0, 255, 0, 0.05);
+            border: 1px solid #0f0;
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        
+        .level-header {
+            color: #ff0;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .metric {
+            background: rgba(0, 0, 255, 0.1);
+            padding: 8px;
+            border-radius: 3px;
+        }
+        
+        .issues {
+            background: rgba(255, 0, 0, 0.1);
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 3px solid #f00;
+        }
+        
+        .suggestions {
+            background: rgba(255, 255, 0, 0.1);
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 3px solid #ff0;
+        }
+        
+        .rating {
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        
+        .rating.easy { color: #0f0; }
+        .rating.medium { color: #ff0; }  
+        .rating.hard { color: #f80; }
+        .rating.expert { color: #f00; }
+        
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: #0a0;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #ff0;
+            font-size: 18px;
+        }
+        
+        .summary {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 ORBITAL STRIKE LEVEL VALIDATOR</h1>
+        <p>Automated level difficulty and satisfaction analysis</p>
+    </div>
+    
+    <div style="text-align: center; margin: 20px 0;">
+        <button onclick="validateAllLevels()">🔍 Validate All Levels</button>
+        <button onclick="validateSingleLevel()">🎯 Test Single Level</button>
+        <button onclick="clearResults()">🗑️ Clear Results</button>
+    </div>
+    
+    <div id="loading" class="loading" style="display: none;">
+        Analyzing levels... Please wait ⏳
+    </div>
+    
+    <div id="results"></div>
+    
+    <!-- Include game files for validation -->
+    <canvas id="gameCanvas" style="display: none;" width="800" height="600"></canvas>
+    
+    <script src="game.js"></script>
+    <script src="level-loader.js"></script>  
+    <script src="level-validator.js"></script>
+    
+    <script>
+        let validationResults = [];
+        
+        async function validateAllLevels() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').innerHTML = '';
+            
+            try {
+                await levelLoader.initialize();
+                const availableLevels = await levelLoader.getAvailableLevels();
+                
+                console.log(`Found ${availableLevels.length} levels to validate`);
+                
+                for (const levelId of availableLevels) {
+                    try {
+                        const levelData = await levelLoader.loadLevel(levelId);
+                        const validator = new LevelValidator({ canvas: { width: 800, height: 600 } });
+                        const metrics = await validator.validateLevel(levelData);
+                        
+                        validationResults.push(metrics);
+                        displayLevelReport(metrics);
+                        
+                        // Small delay to prevent browser freezing
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
+                    } catch (error) {
+                        console.error(`Failed to validate level ${levelId}:`, error);
+                        displayError(levelId, error.message);
+                    }
+                }
+                
+                displaySummary();
+                
+            } catch (error) {
+                console.error('Validation failed:', error);
+                document.getElementById('results').innerHTML = 
+                    `<div class="issues">❌ Validation failed: ${error.message}</div>`;
+            }
+            
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        async function validateSingleLevel() {
+            const levelId = prompt('Enter level number to validate (1-6):');
+            if (!levelId) return;
+            
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                await levelLoader.initialize();
+                const levelData = await levelLoader.loadLevel(parseInt(levelId));
+                const validator = new LevelValidator({ canvas: { width: 800, height: 600 } });
+                const metrics = await validator.validateLevel(levelData);
+                
+                document.getElementById('results').innerHTML = '';
+                displayLevelReport(metrics);
+                
+            } catch (error) {
+                document.getElementById('results').innerHTML = 
+                    `<div class="issues">❌ Failed to validate level ${levelId}: ${error.message}</div>`;
+            }
+            
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        function displayLevelReport(metrics) {
+            const resultsDiv = document.getElementById('results');
+            
+            const avgSolutions = (metrics.solutionCount / metrics.totalTargets).toFixed(1);
+            const ratingClass = getRatingClass(metrics.difficultyScore);
+            const rating = getRating(metrics.difficultyScore);
+            
+            const reportHTML = `
+                <div class="level-report">
+                    <div class="level-header">
+                        📊 Level ${metrics.levelId}: ${metrics.name}
+                    </div>
+                    
+                    <div class="metrics">
+                        <div class="metric">🎯 Targets: ${metrics.totalTargets}</div>
+                        <div class="metric">🌍 Space Bodies: ${metrics.spaceBodies}</div>
+                        <div class="metric">🔄 Avg Solutions: ${avgSolutions}</div>
+                        <div class="metric">🌌 Gravity Assists: ${metrics.averageGravityAssists.toFixed(1)}</div>
+                        <div class="metric">📈 Difficulty Score: ${metrics.difficultyScore}</div>
+                        <div class="metric">⚠️ Frustration Risk: ${metrics.frustrationRisk}</div>
+                        <div class="metric">😊 Satisfaction: ${metrics.satisfactionPotential}</div>
+                        <div class="metric">🚫 Direct Shots: ${metrics.directShotsBlocked}</div>
+                    </div>
+                    
+                    <div class="rating ${ratingClass}">
+                        ${rating}
+                    </div>
+                    
+                    ${metrics.issues.length > 0 ? `
+                        <div class="issues">
+                            <h4>⚠️ Issues Found:</h4>
+                            <ul>
+                                ${metrics.issues.map(issue => `<li>${issue}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : '<div style="color: #0f0;">✅ No issues found</div>'}
+                    
+                    ${metrics.suggestions.length > 0 ? `
+                        <div class="suggestions">
+                            <h4>💡 Suggestions:</h4>
+                            <ul>
+                                ${metrics.suggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            resultsDiv.innerHTML += reportHTML;
+        }
+        
+        function displayError(levelId, message) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML += `
+                <div class="level-report">
+                    <div class="level-header">❌ Level ${levelId}: Validation Failed</div>
+                    <div class="issues">Error: ${message}</div>
+                </div>
+            `;
+        }
+        
+        function displaySummary() {
+            if (validationResults.length === 0) return;
+            
+            const avgDifficulty = validationResults.reduce((sum, r) => sum + r.difficultyScore, 0) / validationResults.length;
+            const highRiskLevels = validationResults.filter(r => r.frustrationRisk === 'high').length;
+            const perfectLevels = validationResults.filter(r => r.difficultyScore >= 30 && r.difficultyScore <= 60).length;
+            const issueCount = validationResults.reduce((sum, r) => sum + r.issues.length, 0);
+            
+            const summaryHTML = `
+                <div class="summary">
+                    <h2>📋 VALIDATION SUMMARY</h2>
+                    <div class="metrics">
+                        <div class="metric">📊 Levels Analyzed: ${validationResults.length}</div>
+                        <div class="metric">📈 Average Difficulty: ${avgDifficulty.toFixed(1)}</div>
+                        <div class="metric">⭐ Perfect Levels: ${perfectLevels}/${validationResults.length}</div>
+                        <div class="metric">⚠️ High Risk Levels: ${highRiskLevels}</div>
+                        <div class="metric">🔧 Total Issues: ${issueCount}</div>
+                    </div>
+                    
+                    <div style="margin-top: 15px;">
+                        <strong>Recommendation:</strong> 
+                        ${perfectLevels === validationResults.length ? 
+                            '🎉 All levels are well-balanced!' :
+                            `📝 ${validationResults.length - perfectLevels} levels need adjustment`}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('results').innerHTML += summaryHTML;
+        }
+        
+        function getRatingClass(score) {
+            if (score < 30) return 'easy';
+            if (score < 50) return 'medium';  
+            if (score < 70) return 'hard';
+            return 'expert';
+        }
+        
+        function getRating(score) {
+            if (score < 20) return "⭐ Too Easy";
+            if (score < 40) return "⭐⭐ Good for Beginners"; 
+            if (score < 60) return "⭐⭐⭐ Perfect Difficulty";
+            if (score < 80) return "⭐⭐⭐⭐ Challenging";
+            return "⭐⭐⭐⭐⭐ Expert Level";
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            validationResults = [];
+        }
+    </script>
+</body>
+</html>
