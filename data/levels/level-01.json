@@ -1,0 +1,43 @@
+{
+  "id": 1,
+  "name": "First Contact",
+  "description": "Simple introduction - single body blocking direct shots",
+  "difficulty": "easy",
+  "targetCount": 3,
+  "spaceBodies": [
+    {
+      "id": "asteroid-1",
+      "type": "asteroid",
+      "position": {
+        "x": "centerX - 100",
+        "y": "centerY"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "id": "target-1",
+      "position": {
+        "x": "centerX + 120", 
+        "y": "centerY - 40"
+      },
+      "movementType": "static"
+    },
+    {
+      "id": "target-2", 
+      "position": {
+        "x": "centerX + 120",
+        "y": "centerY + 40"
+      },
+      "movementType": "static"
+    },
+    {
+      "id": "target-3",
+      "position": {
+        "x": "centerX + 160",
+        "y": "centerY"
+      },
+      "movementType": "static"
+    }
+  ]
+}

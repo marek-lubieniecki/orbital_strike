@@ -1,0 +1,123 @@
+{
+  "id": 6,
+  "name": "Gravity Maze",
+  "description": "Requires precise chaining",
+  "difficulty": "hard",
+  "targetCount": 8,
+  "spaceBodies": [
+    {
+      "id": "star-1",
+      "type": "star",
+      "position": {
+        "x": "centerX - 200",
+        "y": "centerY"
+      }
+    },
+    {
+      "id": "gas-giant-1",
+      "type": "gas_giant",
+      "position": {
+        "x": "centerX - 80",
+        "y": "centerY - 120"
+      }
+    },
+    {
+      "id": "planet-1",
+      "type": "planet",
+      "position": {
+        "x": "centerX + 40",
+        "y": "centerY - 40"
+      }
+    },
+    {
+      "id": "dwarf-1",
+      "type": "dwarf_planet",
+      "position": {
+        "x": "centerX - 40",
+        "y": "centerY + 100"
+      }
+    },
+    {
+      "id": "asteroid-1",
+      "type": "asteroid",
+      "position": {
+        "x": "centerX + 140",
+        "y": "centerY + 60"
+      }
+    },
+    {
+      "id": "gas-giant-2",
+      "type": "gas_giant",
+      "position": {
+        "x": "centerX + 180",
+        "y": "centerY - 100"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "id": "target-1",
+      "position": {
+        "x": "60",
+        "y": "centerY - 180"
+      },
+      "movementType": "static"
+    },
+    {
+      "id": "target-2",
+      "position": {
+        "x": "canvasWidth - 60",
+        "y": "centerY - 180"
+      },
+      "movementType": "static"
+    },
+    {
+      "id": "target-3",
+      "position": {
+        "x": "centerX - 260",
+        "y": "centerY - 60"
+      },
+      "movementType": "static"
+    },
+    {
+      "id": "target-4",
+      "position": {
+        "x": "centerX + 240",
+        "y": "centerY - 160"
+      },
+      "movementType": "static"
+    },
+    {
+      "id": "target-5",
+      "position": {
+        "x": "60",
+        "y": "centerY + 180"
+      },
+      "movementType": "static"
+    },
+    {
+      "id": "target-6",
+      "position": {
+        "x": "canvasWidth - 60",
+        "y": "centerY + 180"
+      },
+      "movementType": "static"
+    },
+    {
+      "id": "target-7",
+      "position": {
+        "x": "centerX - 300",
+        "y": "centerY + 120"
+      },
+      "movementType": "static"
+    },
+    {
+      "id": "target-8",
+      "position": {
+        "x": "centerX + 280",
+        "y": "centerY + 140"
+      },
+      "movementType": "static"
+    }
+  ]
+}

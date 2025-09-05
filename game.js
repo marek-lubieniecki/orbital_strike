@@ -554,17 +554,34 @@ class Game {
         this.score = 0;
         this.level = 1;
         this.levelCompleted = false;
+        this.initialized = false;
         
         this.mousePosition = new Vector2(0, 0);
         this.isMobile = this.checkMobile();
         
         this.setupEventListeners();
-        this.initializeLevel();
-        
-        this.lastTime = 0;
-        this.gameLoop = this.gameLoop.bind(this);
-        console.log('Starting game loop...');
-        requestAnimationFrame(this.gameLoop);
+        this.initialize();
+    }
+
+    async initialize() {
+        try {
+            await levelLoader.initialize();
+            await this.initializeLevel();
+            this.initialized = true;
+            
+            this.lastTime = 0;
+            this.gameLoop = this.gameLoop.bind(this);
+            console.log('Starting game loop...');
+            requestAnimationFrame(this.gameLoop);
+        } catch (error) {
+            console.error('Failed to initialize game:', error);
+            // Fallback to original hardcoded levels
+            this.initializeFallbackLevel();
+            this.initialized = true;
+            this.lastTime = 0;
+            this.gameLoop = this.gameLoop.bind(this);
+            requestAnimationFrame(this.gameLoop);
+        }
     }
 
     setupCanvas() {
@@ -633,13 +650,15 @@ class Game {
             });
         }
 
-        window.addEventListener('resize', () => {
+        window.addEventListener('resize', async () => {
             this.setupCanvas();
-            this.initializeLevel();
+            if (this.initialized) {
+                await this.initializeLevel();
+            }
         });
     }
 
-    initializeLevel() {
+    async initializeLevel() {
         this.spaceBodies = [];
         this.bullets = [];
         this.targets = [];
@@ -654,18 +673,94 @@ class Game {
             this.cannon = new Cannon(50, this.canvas.height - 50);
         }
         
-        // Create space bodies with gravity - positioned to block direct shots
+        try {
+            // Load level from JSON file
+            const levelData = await levelLoader.loadLevel(this.level);
+            this.loadLevelFromData(levelData);
+        } catch (error) {
+            console.error(`Failed to load level ${this.level}, falling back to generated level:`, error);
+            // Fallback to original level generation
+            this.generateFallbackLevel();
+        }
+        
+        this.updateUI();
+    }
+
+    loadLevelFromData(levelData) {
+        console.log(`Loading level ${levelData.id}: ${levelData.name}`);
+        
+        // Create space bodies from level data
+        levelData.spaceBodies.forEach(bodyData => {
+            const position = new Vector2(
+                levelLoader.resolvePosition(bodyData.position.x, this.canvas.width, this.canvas.height),
+                levelLoader.resolvePosition(bodyData.position.y, this.canvas.width, this.canvas.height)
+            );
+            
+            const spaceBody = new SpaceBody(position.x, position.y, bodyData.type);
+            spaceBody.id = bodyData.id;
+            this.spaceBodies.push(spaceBody);
+        });
+        
+        // Create targets from level data
+        levelData.targets.forEach(targetData => {
+            const position = new Vector2(
+                levelLoader.resolvePosition(targetData.position.x, this.canvas.width, this.canvas.height),
+                levelLoader.resolvePosition(targetData.position.y, this.canvas.width, this.canvas.height)
+            );
+            
+            let target;
+            if (targetData.movementType === 'orbit' && targetData.orbitCenter) {
+                const orbitCenter = new Vector2(
+                    levelLoader.resolvePosition(targetData.orbitCenter.x, this.canvas.width, this.canvas.height),
+                    levelLoader.resolvePosition(targetData.orbitCenter.y, this.canvas.width, this.canvas.height)
+                );
+                target = new Target(
+                    position.x, 
+                    position.y, 
+                    'orbit',
+                    orbitCenter,
+                    targetData.orbitRadius,
+                    targetData.orbitalSpeed
+                );
+            } else {
+                target = new Target(position.x, position.y, 'static');
+            }
+            
+            target.id = targetData.id;
+            this.targets.push(target);
+        });
+    }
+
+    generateFallbackLevel() {
+        // Fallback to original level generation logic
         const centerX = this.canvas.width / 2;
         const centerY = this.canvas.height / 2;
-        
-        // Linear progression: add one space body per level (max 6)
         const maxBodies = 6;
         const bodyCount = Math.min(this.level, maxBodies);
         const targetCount = 2 + this.level;
         
         this.generateLinearLevel(bodyCount, targetCount);
+    }
+
+    initializeFallbackLevel() {
+        // Initialize with fallback when loader fails completely
+        this.initializeLevel = () => {
+            this.spaceBodies = [];
+            this.bullets = [];
+            this.targets = [];
+            
+            const isVertical = this.canvas.height > this.canvas.width;
+            if (isVertical) {
+                this.cannon = new Cannon(this.canvas.width * 0.2, this.canvas.height - 50);
+            } else {
+                this.cannon = new Cannon(50, this.canvas.height - 50);
+            }
+            
+            this.generateFallbackLevel();
+            this.updateUI();
+        };
         
-        this.updateUI();
+        this.initializeLevel();
     }
 
     generateLinearLevel(bodyCount, targetCount) {
@@ -1247,9 +1342,9 @@ class Game {
         if (this.targets.every(target => target.hit) && !this.levelCompleted) {
             this.levelCompleted = true;
             console.log('Level', this.level, 'completed! Moving to level', this.level + 1);
-            setTimeout(() => {
+            setTimeout(async () => {
                 this.level++;
-                this.initializeLevel();
+                await this.initializeLevel();
                 this.levelCompleted = false;
             }, 1500);
         }
@@ -1319,6 +1414,11 @@ class Game {
     }
 
     gameLoop(currentTime) {
+        if (!this.initialized) {
+            requestAnimationFrame(this.gameLoop);
+            return;
+        }
+
         const deltaTime = (currentTime - this.lastTime) / 1000;
         this.lastTime = currentTime;
 

@@ -1,0 +1,59 @@
+{
+  "id": 2,
+  "name": "Linear Chain",
+  "description": "Requires one gravity assist",
+  "difficulty": "easy",
+  "targetCount": 4,
+  "spaceBodies": [
+    {
+      "id": "asteroid-1",
+      "type": "asteroid",
+      "position": {
+        "x": "centerX - 120",
+        "y": "centerY - 60"
+      }
+    },
+    {
+      "id": "dwarf-1",
+      "type": "dwarf_planet",
+      "position": {
+        "x": "centerX + 80",
+        "y": "centerY + 80"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "id": "target-1",
+      "position": {
+        "x": "centerX + 150",
+        "y": "centerY - 120"
+      },
+      "movementType": "static"
+    },
+    {
+      "id": "target-2",
+      "position": {
+        "x": "centerX - 80",
+        "y": "centerY + 140"
+      },
+      "movementType": "static"
+    },
+    {
+      "id": "target-3",
+      "position": {
+        "x": "canvasWidth - 80",
+        "y": "centerY"
+      },
+      "movementType": "static"
+    },
+    {
+      "id": "target-4",
+      "position": {
+        "x": "centerX",
+        "y": "canvasHeight - 60"
+      },
+      "movementType": "static"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "game": {
+    "name": "Orbital Strike",
+    "version": "1.0.0"
+  },
+  "canvas": {
+    "desktop": {
+      "width": 800,
+      "height": 600
+    },
+    "mobile": {
+      "width": 400,
+      "height": 700
+    }
+  },
+  "physics": {
+    "gravitationalConstant": 5000,
+    "bulletMass": 1,
+    "bulletRadius": 6,
+    "bulletSpeed": 120,
+    "trailLength": 20
+  },
+  "cannon": {
+    "length": 40,
+    "width": 8,
+    "desktopPosition": { "x": 50, "yOffset": 50 },
+    "mobilePositionPercent": { "x": 0.2, "yOffset": 50 }
+  },
+  "scoring": {
+    "targetHitPoints": 100,
+    "levelCompleteBonus": 500
+  },
+  "ui": {
+    "colors": {
+      "primary": "#50e3c2",
+      "secondary": "#4a90e2", 
+      "accent": "#ff6b6b",
+      "text": "#ffffff"
+    }
+  }
+}
