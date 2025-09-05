@@ -573,8 +573,18 @@ class Game {
         const maxWidth = window.innerWidth - 40;
         const maxHeight = window.innerHeight - 40;
         
-        this.canvas.width = Math.min(800, maxWidth);
-        this.canvas.height = Math.min(600, maxHeight);
+        // Check if device is mobile/vertical orientation
+        const isVertical = window.innerHeight > window.innerWidth || this.isMobile;
+        
+        if (isVertical) {
+            // Vertical/mobile layout - portrait orientation
+            this.canvas.width = Math.min(400, maxWidth);
+            this.canvas.height = Math.min(700, maxHeight);
+        } else {
+            // Desktop/horizontal layout
+            this.canvas.width = Math.min(800, maxWidth);
+            this.canvas.height = Math.min(600, maxHeight);
+        }
         
         container.style.width = this.canvas.width + 'px';
         container.style.height = this.canvas.height + 'px';
@@ -632,7 +642,15 @@ class Game {
         this.bullets = [];
         this.targets = [];
         
-        this.cannon = new Cannon(50, this.canvas.height - 50);
+        // Position cannon appropriately for screen orientation
+        const isVertical = this.canvas.height > this.canvas.width;
+        if (isVertical) {
+            // For vertical screens, keep cannon at bottom center-left
+            this.cannon = new Cannon(this.canvas.width * 0.2, this.canvas.height - 50);
+        } else {
+            // For horizontal screens, use traditional bottom-left
+            this.cannon = new Cannon(50, this.canvas.height - 50);
+        }
         
         // Create space bodies with gravity - positioned to block direct shots
         const centerX = this.canvas.width / 2;

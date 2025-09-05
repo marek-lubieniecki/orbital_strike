@@ -124,7 +124,7 @@
             z-index: 10;
         }
 
-        @media (max-width: 1200px) {
+        @media (max-width: 1200px), (orientation: portrait) {
             #gameWrapper {
                 flex-direction: column;
                 align-items: center;
@@ -133,28 +133,52 @@
             #sidebar {
                 width: 100%;
                 max-width: 600px;
-                max-height: 300px;
+                max-height: 250px;
                 order: -1;
             }
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 768px), (orientation: portrait) {
+            body {
+                padding: 5px;
+            }
+            
             #ui {
                 font-size: 16px;
             }
+            
             #instructions {
                 font-size: 12px;
+                bottom: 5px;
             }
             
             #sidebar {
                 width: 100%;
                 max-width: none;
-                max-height: 200px;
-                padding: 10px;
+                max-height: 180px;
+                padding: 8px;
+                margin-bottom: 10px;
             }
             
             #sidebar h3 {
                 font-size: 16px;
+                margin-bottom: 8px;
+            }
+            
+            #gameContainer {
+                border-width: 1px;
+            }
+        }
+
+        @media (max-height: 800px) and (orientation: portrait) {
+            #sidebar {
+                max-height: 140px;
+            }
+            
+            body {
+                min-height: auto;
+                align-items: flex-start;
+                padding-top: 10px;
             }
         }
     </style>
