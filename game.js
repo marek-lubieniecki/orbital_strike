@@ -591,6 +591,14 @@ class Game {
         this.maxLaunchVelocity = 240; // 2x base velocity
         this.maxChargeTime = 1000; // 1 second for full charge
         
+        // Version tracking - increment with major changes
+        // v1.0.0: Initial release with basic gameplay
+        // v1.1.0: Added JSON level loading system  
+        // v1.2.0: Added procedural level generation
+        // v1.3.0: Added body-mounted cannon mechanics
+        // v1.4.0: Added hold-to-charge launch system + collision-free target placement
+        this.gameVersion = "v1.4.0";
+        
         this.setupEventListeners();
         this.initialize();
     }
@@ -1731,6 +1739,9 @@ class Game {
         if (this.completionMessage) {
             this.drawCompletionMessage();
         }
+        
+        // Draw version in corner
+        this.drawVersion();
     }
 
     drawTrajectoryPreview() {
@@ -1807,6 +1818,36 @@ class Game {
         this.ctx.font = '12px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.fillText(`${Math.round(powerRatio * 100)}%`, meterX + meterWidth / 2, meterY + meterHeight + 15);
+        
+        this.ctx.restore();
+    }
+    
+    drawVersion() {
+        this.ctx.save();
+        
+        // Adjust positioning for mobile vs desktop
+        const margin = this.isMobile ? 5 : 10;
+        const fontSize = this.isMobile ? 9 : 11;
+        const x = this.canvas.width - margin;
+        const y = this.canvas.height - margin;
+        
+        // Semi-transparent background
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        this.ctx.font = `${fontSize}px Arial`;
+        this.ctx.textAlign = 'right';
+        this.ctx.textBaseline = 'bottom';
+        
+        // Measure text for background rectangle
+        const metrics = this.ctx.measureText(this.gameVersion);
+        const textWidth = metrics.width;
+        const textHeight = fontSize;
+        
+        // Draw background rectangle
+        this.ctx.fillRect(x - textWidth - 4, y - textHeight - 2, textWidth + 8, textHeight + 4);
+        
+        // Draw version text
+        this.ctx.fillStyle = '#aaaaaa';
+        this.ctx.fillText(this.gameVersion, x - 2, y - 2);
         
         this.ctx.restore();
     }
