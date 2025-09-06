@@ -683,13 +683,14 @@ class Game {
         }
         
         try {
-            // Load level from JSON file
+            // Try to load level from JSON file first (for custom levels)
             const levelData = await levelLoader.loadLevel(this.level);
             this.loadLevelFromData(levelData);
+            console.log(`Loaded custom level ${this.level} from JSON`);
         } catch (error) {
-            console.error(`Failed to load level ${this.level}, falling back to generated level:`, error);
-            // Fallback to original level generation
-            this.generateFallbackLevel();
+            // Use procedural generation as the primary method
+            console.log(`Generating procedural level ${this.level}`);
+            this.generateProceduralLevel();
         }
         
         this.updateUI();
@@ -740,573 +741,372 @@ class Game {
         });
     }
 
-    generateFallbackLevel() {
-        // Fallback to original level generation logic
+    generateProceduralLevel() {
+        // Mobile-aware procedural level generation
+        const safeMargin = 60;
         const centerX = this.canvas.width / 2;
         const centerY = this.canvas.height / 2;
-        const maxBodies = 6;
-        const bodyCount = Math.min(this.level, maxBodies);
-        const targetCount = 2 + this.level;
+        const canvasW = this.canvas.width;
+        const canvasH = this.canvas.height;
         
-        this.generateLinearLevel(bodyCount, targetCount);
-    }
-
-    initializeFallbackLevel() {
-        // Initialize with fallback when loader fails completely
-        this.initializeLevel = () => {
-            this.spaceBodies = [];
-            this.bullets = [];
-            this.targets = [];
-            
-            const isVertical = this.canvas.height > this.canvas.width;
-            if (isVertical) {
-                this.cannon = new Cannon(this.canvas.width * 0.2, this.canvas.height - 50);
-            } else {
-                this.cannon = new Cannon(50, this.canvas.height - 50);
-            }
-            
-            this.generateFallbackLevel();
-            this.updateUI();
+        // Define safe play area boundaries
+        this.playArea = {
+            minX: safeMargin,
+            maxX: canvasW - safeMargin,
+            minY: safeMargin,
+            maxY: canvasH - safeMargin,
+            centerX: centerX,
+            centerY: centerY,
+            width: canvasW - 2 * safeMargin,
+            height: canvasH - 2 * safeMargin
         };
         
-        this.initializeLevel();
+        // Generate level based on progression
+        switch (this.level) {
+            case 1:
+                this.generateTutorialLevel();
+                break;
+            case 2:
+                this.generateSingleBodyLevel();
+                break;
+            case 3:
+                this.generateDoubleBodyLevel();
+                break;
+            case 4:
+                this.generateCorridorLevel();
+                break;
+            case 5:
+                this.generateAsteroidFieldLevel();
+                break;
+            default:
+                this.generateAdvancedLevel();
+                break;
+        }
     }
 
-    generateLinearLevel(bodyCount, targetCount) {
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2;
-        const colors = ['#4a90e2', '#e24a4a', '#4ae24a', '#e2a24a', '#a24ae2', '#2ae24a'];
+    // Mobile-aware level generation methods
+
+    generateTutorialLevel() {
+        // Level 1: No bodies - pure tutorial to learn shooting mechanics
+        const targetCount = 3;
         
-        // Strategic level designs that require complex trajectory chains
-        this.generateStrategicLevel(bodyCount);
-        
-        // Generate targets strategically placed to require trajectory chains
-        this.generateStrategicTargets(targetCount);
-    }
-    
-    generateStrategicLevel(bodyCount) {
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2;
-        const bodyTypes = ['asteroid', 'dwarf_planet', 'planet', 'gas_giant', 'star'];
-        
-        // Specific strategic layouts based on level
-        if (this.level === 1) {
-            // Simple introduction - single body blocking direct shots
-            this.spaceBodies.push(new SpaceBody(centerX - 100, centerY, 'asteroid'));
-        }
-        
-        else if (this.level === 2) {
-            // Linear chain - requires one gravity assist
-            this.spaceBodies.push(new SpaceBody(centerX - 120, centerY - 60, 'asteroid'));
-            this.spaceBodies.push(new SpaceBody(centerX + 80, centerY + 80, 'dwarf_planet'));
-        }
-        
-        else if (this.level === 3) {
-            // Triangle formation - multiple trajectory options
-            this.spaceBodies.push(new SpaceBody(centerX - 150, centerY - 80, 'asteroid'));
-            this.spaceBodies.push(new SpaceBody(centerX + 120, centerY - 40, 'dwarf_planet')); 
-            this.spaceBodies.push(new SpaceBody(centerX - 50, centerY + 120, 'planet'));
-        }
-        
-        else if (this.level === 4) {
-            // Slingshot corridor - forces specific trajectory chain
-            this.spaceBodies.push(new SpaceBody(centerX - 180, centerY - 100, 'planet'));
-            this.spaceBodies.push(new SpaceBody(centerX - 80, centerY + 60, 'dwarf_planet'));
-            this.spaceBodies.push(new SpaceBody(centerX + 100, centerY - 80, 'asteroid'));
-            this.spaceBodies.push(new SpaceBody(centerX + 160, centerY + 100, 'gas_giant'));
-        }
-        
-        else if (this.level === 5) {
-            // Binary system with slingshot opportunities
-            this.spaceBodies.push(new SpaceBody(centerX - 130, centerY - 30, 'gas_giant'));
-            this.spaceBodies.push(new SpaceBody(centerX - 70, centerY + 30, 'planet'));
-            this.spaceBodies.push(new SpaceBody(centerX + 120, centerY - 80, 'dwarf_planet'));
-            this.spaceBodies.push(new SpaceBody(centerX + 80, centerY + 120, 'asteroid'));
-            this.spaceBodies.push(new SpaceBody(centerX + 200, centerY, 'star'));
-        }
-        
-        else if (this.level === 6) {
-            // Gravity maze - requires precise chaining
-            this.spaceBodies.push(new SpaceBody(centerX - 200, centerY, 'star'));
-            this.spaceBodies.push(new SpaceBody(centerX - 80, centerY - 120, 'gas_giant'));
-            this.spaceBodies.push(new SpaceBody(centerX + 40, centerY - 40, 'planet'));
-            this.spaceBodies.push(new SpaceBody(centerX - 40, centerY + 100, 'dwarf_planet'));
-            this.spaceBodies.push(new SpaceBody(centerX + 140, centerY + 60, 'asteroid'));
-            this.spaceBodies.push(new SpaceBody(centerX + 180, centerY - 100, 'gas_giant'));
-        }
-        
-        else {
-            // Advanced procedural layouts for level 7+
-            this.generateAdvancedChainLayout(bodyCount);
-        }
-    }
-    
-    generateAdvancedChainLayout(bodyCount) {
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2;
-        const bodyTypes = ['asteroid', 'dwarf_planet', 'planet', 'gas_giant', 'star'];
-        
-        // Create strategic patterns that force complex trajectories
-        const patterns = [
-            // Spiral galaxy pattern
-            () => {
-                for (let i = 0; i < bodyCount; i++) {
-                    const angle = (i / bodyCount) * Math.PI * 4; // Double spiral
-                    const radius = 60 + i * 30;
-                    const x = centerX + Math.cos(angle) * radius;
-                    const y = centerY + Math.sin(angle) * radius;
-                    const bodyType = bodyTypes[Math.min(i, bodyTypes.length - 1)];
-                    
-                    if (x > 100 && x < this.canvas.width - 100 && y > 100 && y < this.canvas.height - 100) {
-                        this.spaceBodies.push(new SpaceBody(x, y, bodyType));
-                    }
-                }
-            },
-            
-            // Chain reaction pattern
-            () => {
-                const chainPositions = [
-                    { x: centerX - 180, y: centerY - 60, type: 'planet' },
-                    { x: centerX - 60, y: centerY - 120, type: 'gas_giant' },
-                    { x: centerX + 80, y: centerY - 80, type: 'dwarf_planet' },
-                    { x: centerX + 140, y: centerY + 40, type: 'asteroid' },
-                    { x: centerX + 40, y: centerY + 140, type: 'planet' },
-                    { x: centerX - 120, y: centerY + 80, type: 'star' }
-                ];
-                
-                chainPositions.slice(0, bodyCount).forEach(pos => {
-                    this.spaceBodies.push(new SpaceBody(pos.x, pos.y, pos.type));
-                });
-            },
-            
-            // Orbital resonance pattern
-            () => {
-                const rings = Math.ceil(bodyCount / 3);
-                let bodyIndex = 0;
-                
-                for (let ring = 1; ring <= rings && bodyIndex < bodyCount; ring++) {
-                    const bodiesInRing = Math.min(3, bodyCount - bodyIndex);
-                    const ringRadius = ring * 80;
-                    
-                    for (let i = 0; i < bodiesInRing; i++) {
-                        const angle = (i / bodiesInRing) * Math.PI * 2 + ring * 0.5;
-                        const x = centerX + Math.cos(angle) * ringRadius;
-                        const y = centerY + Math.sin(angle) * ringRadius;
-                        const bodyType = bodyTypes[bodyIndex % bodyTypes.length];
-                        
-                        if (x > 100 && x < this.canvas.width - 100 && y > 100 && y < this.canvas.height - 100) {
-                            this.spaceBodies.push(new SpaceBody(x, y, bodyType));
-                        }
-                        bodyIndex++;
-                    }
-                }
-            }
+        // Create simple targets in easy-to-reach positions
+        const targetPositions = [
+            { x: this.playArea.centerX + this.playArea.width * 0.2, y: this.playArea.centerY - this.playArea.height * 0.1 },
+            { x: this.playArea.centerX + this.playArea.width * 0.3, y: this.playArea.centerY },
+            { x: this.playArea.centerX + this.playArea.width * 0.2, y: this.playArea.centerY + this.playArea.height * 0.1 }
         ];
         
-        // Choose pattern based on level
-        const patternIndex = (this.level - 7) % patterns.length;
-        patterns[patternIndex]();
-    }
-    
-    generateStrategicTargets(targetCount) {
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2;
-        
-        // Generate candidate positions first
-        let candidatePositions = [];
-        
-        // Level-specific target placements that require gravity chains
-        if (this.level === 1) {
-            candidatePositions = [
-                { x: centerX + 120, y: centerY - 40 },
-                { x: centerX + 120, y: centerY + 40 },
-                { x: centerX + 160, y: centerY }
-            ];
-        }
-        
-        else if (this.level === 2) {
-            candidatePositions = [
-                { x: centerX + 150, y: centerY - 120 },
-                { x: centerX - 80, y: centerY + 140 },
-                { x: this.canvas.width - 80, y: centerY },
-                { x: centerX, y: this.canvas.height - 60 }
-            ];
-        }
-        
-        else if (this.level === 3) {
-            candidatePositions = [
-                { x: centerX + 180, y: centerY - 120 },
-                { x: centerX - 200, y: centerY + 40 },
-                { x: centerX + 100, y: centerY + 180 },
-                { x: 80, y: centerY - 140 },
-                { x: this.canvas.width - 80, y: centerY + 140 }
-            ];
-        }
-        
-        else if (this.level === 4) {
-            candidatePositions = [
-                { x: 80, y: centerY - 140 },
-                { x: this.canvas.width - 80, y: centerY - 40 },
-                { x: centerX - 240, y: centerY + 140 },
-                { x: centerX + 220, y: centerY + 180 },
-                { x: centerX, y: 80 },
-                { x: centerX, y: this.canvas.height - 80 }
-            ];
-        }
-        
-        else if (this.level === 5) {
-            candidatePositions = [
-                { x: 80, y: 80 },
-                { x: this.canvas.width - 80, y: 80 },
-                { x: 80, y: this.canvas.height - 80 },
-                { x: this.canvas.width - 80, y: this.canvas.height - 80 },
-                { x: centerX - 280, y: centerY },
-                { x: centerX, y: 60 },
-                { x: centerX, y: this.canvas.height - 60 }
-            ];
-        }
-        
-        else if (this.level === 6) {
-            candidatePositions = [
-                { x: 60, y: centerY - 180 },
-                { x: this.canvas.width - 60, y: centerY - 180 },
-                { x: centerX - 260, y: centerY - 60 },
-                { x: centerX + 240, y: centerY - 160 },
-                { x: 60, y: centerY + 180 },
-                { x: this.canvas.width - 60, y: centerY + 180 }
-            ];
-        }
-        
-        else {
-            // Advanced levels - procedural strategic placement
-            this.generateAdvancedTargets(targetCount);
-            return;
-        }
-        
-        // Validate and place targets, ensuring they're reachable
-        this.validateAndPlaceTargets(candidatePositions, targetCount);
-    }
-    
-    generateAdvancedTargets(targetCount) {
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2;
-        
-        // Place targets in challenging positions that require gravity chains
-        const strategicPositions = [
-            // Corner positions (require multiple gravity assists)
-            { x: 80, y: 80 },
-            { x: this.canvas.width - 80, y: 80 },
-            { x: 80, y: this.canvas.height - 80 },
-            { x: this.canvas.width - 80, y: this.canvas.height - 80 },
-            
-            // Edge centers (moderate difficulty)
-            { x: centerX, y: 60 },
-            { x: centerX, y: this.canvas.height - 60 },
-            { x: 60, y: centerY },
-            { x: this.canvas.width - 60, y: centerY },
-            
-            // Shadow zones behind space bodies
-            ...this.spaceBodies.map(body => ({
-                x: body.position.x + (body.position.x > centerX ? 1 : -1) * (body.radius + 60),
-                y: body.position.y + (Math.random() - 0.5) * 80
-            }))
-        ];
-        
-        this.validateAndPlaceTargets(strategicPositions, targetCount);
-    }
-    
-    validateAndPlaceTargets(candidatePositions, targetCount) {
-        const validatedTargets = [];
-        const minTargetDistance = 80; // Minimum distance between targets
-        
-        for (const pos of candidatePositions) {
-            // Skip if position is outside canvas bounds
-            if (pos.x < 30 || pos.x > this.canvas.width - 30 || 
-                pos.y < 30 || pos.y > this.canvas.height - 30) {
-                continue;
-            }
-            
-            // Ensure position doesn't overlap with space bodies
-            const isSafe = this.spaceBodies.every(body => 
-                new Vector2(pos.x, pos.y).distance(body.position) > body.radius + 40
-            );
-            
-            if (!isSafe) continue;
-            
-            // Ensure minimum distance from existing targets
-            const tooCloseToOtherTarget = validatedTargets.some(existingTarget => 
-                new Vector2(pos.x, pos.y).distance(new Vector2(existingTarget.x, existingTarget.y)) < minTargetDistance
-            );
-            
-            if (tooCloseToOtherTarget) continue;
-            
-            // Test reachability with trajectory simulation
-            if (this.isTargetReachable(pos)) {
-                validatedTargets.push(pos);
-                if (validatedTargets.length >= targetCount) break;
-            }
-        }
-        
-        // If we don't have enough validated targets, generate fallback positions
-        let fallbackAttempts = 0;
-        const maxFallbackAttempts = 50;
-        
-        while (validatedTargets.length < targetCount && fallbackAttempts < maxFallbackAttempts) {
-            const fallbackPos = this.generateFallbackTarget();
-            if (fallbackPos && this.isTargetReachable(fallbackPos)) {
-                // Check distance from existing targets
-                const tooCloseToOtherTarget = validatedTargets.some(existingTarget => 
-                    new Vector2(fallbackPos.x, fallbackPos.y).distance(new Vector2(existingTarget.x, existingTarget.y)) < minTargetDistance
-                );
-                
-                if (!tooCloseToOtherTarget) {
-                    validatedTargets.push(fallbackPos);
-                }
-            }
-            fallbackAttempts++;
-        }
-        
-        // If still not enough targets, add simple safe targets to ensure game is playable
-        let simpleTargetAttempts = 0;
-        const maxSimpleAttempts = 20;
-        
-        while (validatedTargets.length < targetCount && simpleTargetAttempts < maxSimpleAttempts) {
-            const safePos = this.generateSimpleTarget();
-            if (safePos) {
-                // Check distance from existing targets (reduce distance requirement if we're struggling)
-                const adjustedMinDistance = validatedTargets.length > 0 ? 
-                    Math.max(40, minTargetDistance - simpleTargetAttempts * 2) : 0;
-                
-                const tooCloseToOtherTarget = validatedTargets.some(existingTarget => 
-                    new Vector2(safePos.x, safePos.y).distance(new Vector2(existingTarget.x, existingTarget.y)) < adjustedMinDistance
-                );
-                
-                if (!tooCloseToOtherTarget || validatedTargets.length === 0) {
-                    validatedTargets.push(safePos);
-                }
-            }
-            simpleTargetAttempts++;
-        }
-        
-        // Emergency fallback: place at least one target if none were placed
-        if (validatedTargets.length === 0) {
-            // Place a simple target at a safe position
-            const emergencyPos = { 
-                x: Math.min(this.canvas.width - 100, 200), 
-                y: Math.min(this.canvas.height - 100, 200) 
-            };
-            validatedTargets.push(emergencyPos);
-        }
-        
-        // Create target objects
-        validatedTargets.forEach(pos => {
-            this.targets.push(new Target(pos.x, pos.y));
+        targetPositions.forEach(pos => {
+            this.targets.push(new Target(pos.x, pos.y, 'static'));
         });
     }
-    
-    isTargetReachable(targetPos) {
-        const cannonPos = this.cannon.position;
+
+    generateSingleBodyLevel() {
+        // Level 2: Single body - learn gravity assists
+        const body = new SpaceBody(
+            Math.max(this.playArea.minX + 100, this.playArea.centerX - this.playArea.width * 0.2),
+            this.playArea.centerY,
+            'asteroid'
+        );
+        this.spaceBodies.push(body);
         
-        // First check: reject if direct line of sight exists (we want gravity-assisted shots)
-        if (this.hasDirectLineOfSight(cannonPos, new Vector2(targetPos.x, targetPos.y))) {
-            return false; // Too easy - direct shot possible
-        }
+        // Create targets that require shooting around the body
+        const targetPositions = [
+            { x: Math.min(this.playArea.maxX - 80, this.playArea.centerX + this.playArea.width * 0.3), y: this.playArea.centerY - this.playArea.height * 0.15 },
+            { x: Math.min(this.playArea.maxX - 80, this.playArea.centerX + this.playArea.width * 0.3), y: this.playArea.centerY + this.playArea.height * 0.15 },
+            { x: Math.min(this.playArea.maxX - 60, this.playArea.centerX + this.playArea.width * 0.35), y: this.playArea.centerY }
+        ];
         
-        const testAngles = [];
+        targetPositions.forEach(pos => {
+            this.targets.push(new Target(pos.x, pos.y, 'static'));
+        });
+    }
+
+    generateDoubleBodyLevel() {
+        // Level 3: Two bodies for more complex trajectories
+        const body1 = new SpaceBody(
+            Math.max(this.playArea.minX + 80, this.playArea.centerX - this.playArea.width * 0.25),
+            Math.max(this.playArea.minY + 80, this.playArea.centerY - this.playArea.height * 0.2),
+            'asteroid'
+        );
+        const body2 = new SpaceBody(
+            Math.min(this.playArea.maxX - 100, this.playArea.centerX + this.playArea.width * 0.2),
+            Math.min(this.playArea.maxY - 80, this.playArea.centerY + this.playArea.height * 0.2),
+            'dwarf_planet'
+        );
+        this.spaceBodies.push(body1, body2);
         
-        // Test fewer angles but more strategically
-        for (let i = 0; i < 24; i++) {
-            testAngles.push((i / 24) * Math.PI * 2);
-        }
+        // Create targets requiring trajectory planning
+        const targetPositions = [
+            { x: Math.min(this.playArea.maxX - 60, this.playArea.centerX + this.playArea.width * 0.35), y: Math.max(this.playArea.minY + 60, this.playArea.centerY - this.playArea.height * 0.25) },
+            { x: Math.max(this.playArea.minX + 60, this.playArea.centerX - this.playArea.width * 0.3), y: Math.min(this.playArea.maxY - 60, this.playArea.centerY + this.playArea.height * 0.3) },
+            { x: Math.min(this.playArea.maxX - 60, this.playArea.centerX + this.playArea.width * 0.25), y: Math.min(this.playArea.maxY - 60, this.playArea.centerY + this.playArea.height * 0.25) }
+        ];
         
-        let reachableTrajectories = 0;
-        const maxAllowedSolutions = 5; // Allow more solutions since we relaxed deflection requirements
+        targetPositions.forEach(pos => {
+            this.targets.push(new Target(pos.x, pos.y, 'static'));
+        });
+    }
+
+    generateCorridorLevel() {
+        // Level 4: Two large bodies creating a corridor
+        const body1 = new SpaceBody(
+            Math.max(this.playArea.minX + 120, this.playArea.centerX - this.playArea.width * 0.2),
+            Math.max(this.playArea.minY + 120, this.playArea.centerY - this.playArea.height * 0.15),
+            'planet'
+        );
+        const body2 = new SpaceBody(
+            Math.min(this.playArea.maxX - 120, this.playArea.centerX + this.playArea.width * 0.2),
+            Math.min(this.playArea.maxY - 120, this.playArea.centerY + this.playArea.height * 0.15),
+            'gas_giant'
+        );
+        this.spaceBodies.push(body1, body2);
         
-        for (const angle of testAngles) {
-            // Create test bullet
-            const velocity = new Vector2(
-                Math.cos(angle) * 120,
-                Math.sin(angle) * 120
-            );
-            const testBullet = new Bullet(cannonPos.x, cannonPos.y, velocity);
+        // Create targets that require threading between the bodies
+        const targetPositions = [
+            { x: Math.min(this.playArea.maxX - 60, this.playArea.centerX + this.playArea.width * 0.4), y: Math.max(this.playArea.minY + 60, this.playArea.centerY - this.playArea.height * 0.3) },
+            { x: Math.max(this.playArea.minX + 60, this.playArea.centerX - this.playArea.width * 0.35), y: Math.min(this.playArea.maxY - 60, this.playArea.centerY + this.playArea.height * 0.35) },
+            { x: this.playArea.centerX, y: Math.max(this.playArea.minY + 60, this.playArea.centerY - this.playArea.height * 0.4) },
+            { x: this.playArea.centerX, y: Math.min(this.playArea.maxY - 60, this.playArea.centerY + this.playArea.height * 0.4) }
+        ];
+        
+        targetPositions.forEach(pos => {
+            this.targets.push(new Target(pos.x, pos.y, 'static'));
+        });
+    }
+
+    generateAsteroidFieldLevel() {
+        // Level 5: Asteroid field - many small bodies
+        const asteroidCount = Math.floor(this.playArea.width * this.playArea.height / 15000); // Density based on screen size
+        const minAsteroids = 6;
+        const maxAsteroids = 12;
+        const actualCount = Math.max(minAsteroids, Math.min(maxAsteroids, asteroidCount));
+        
+        // Create asteroid field
+        for (let i = 0; i < actualCount; i++) {
+            let attempts = 0;
+            let placed = false;
             
-            // Track if trajectory uses gravity (bullet gets deflected)
-            let initialDirection = velocity.normalize();
-            let usedGravityAssist = false;
-            
-            // Simulate trajectory
-            const maxSteps = 250;
-            const stepTime = 0.016; // 60fps
-            
-            for (let step = 0; step < maxSteps && testBullet.alive; step++) {
-                const oldVelocity = new Vector2(testBullet.velocity.x, testBullet.velocity.y);
-                testBullet.update(this.spaceBodies, stepTime, this.canvas.width, this.canvas.height);
+            while (attempts < 20 && !placed) {
+                const x = this.playArea.minX + Math.random() * this.playArea.width;
+                const y = this.playArea.minY + Math.random() * this.playArea.height;
                 
-                // Check if gravity changed trajectory (15 degree deflection)
-                if (step > 10) {
-                    const currentDirection = testBullet.velocity.normalize();
-                    const dotProduct = initialDirection.x * currentDirection.x + initialDirection.y * currentDirection.y;
-                    if (dotProduct < 0.966) { // ~15 degree change (cos(15°) ≈ 0.966)
-                        usedGravityAssist = true;
-                    }
+                // Ensure asteroids don't block the immediate cannon area
+                const cannonArea = { x: this.cannon.position.x, y: this.cannon.position.y, radius: 100 };
+                if (new Vector2(x, y).distance(new Vector2(cannonArea.x, cannonArea.y)) < cannonArea.radius) {
+                    attempts++;
+                    continue;
                 }
                 
-                // Check if bullet reaches target
-                if (new Vector2(testBullet.position.x, testBullet.position.y).distance(new Vector2(targetPos.x, targetPos.y)) < 25) {
-                    if (usedGravityAssist) {
-                        reachableTrajectories++;
-                        if (reachableTrajectories <= maxAllowedSolutions) {
-                            break; // Found a valid gravity-assisted solution
-                        }
-                    }
-                    break;
-                }
-                
-                // Check collision with space bodies
-                const hitSpaceBody = this.spaceBodies.some(body => 
-                    testBullet.checkSpaceBodyCollision(body)
+                // Ensure asteroids aren't too close to each other
+                const tooClose = this.spaceBodies.some(body => 
+                    new Vector2(x, y).distance(body.position) < 80
                 );
                 
-                if (hitSpaceBody) {
-                    testBullet.alive = false;
+                if (!tooClose) {
+                    this.spaceBodies.push(new SpaceBody(x, y, 'asteroid'));
+                    placed = true;
+                }
+                attempts++;
+            }
+        }
+        
+        // Create targets scattered throughout the field
+        const targetCount = 4;
+        for (let i = 0; i < targetCount; i++) {
+            let attempts = 0;
+            let placed = false;
+            
+            while (attempts < 30 && !placed) {
+                const x = this.playArea.minX + 60 + Math.random() * (this.playArea.width - 120);
+                const y = this.playArea.minY + 60 + Math.random() * (this.playArea.height - 120);
+                
+                // Ensure target is not too close to any asteroid
+                const tooCloseToAsteroid = this.spaceBodies.some(body => 
+                    new Vector2(x, y).distance(body.position) < body.radius + 40
+                );
+                
+                // Ensure target is not too close to other targets
+                const tooCloseToTarget = this.targets.some(target => 
+                    new Vector2(x, y).distance(target.position) < 100
+                );
+                
+                if (!tooCloseToAsteroid && !tooCloseToTarget) {
+                    this.targets.push(new Target(x, y, 'static'));
+                    placed = true;
+                }
+                attempts++;
+            }
+        }
+        
+        // If we couldn't place enough targets, add safe ones
+        while (this.targets.length < targetCount) {
+            const safePositions = [
+                { x: this.playArea.maxX - 80, y: this.playArea.minY + 80 },
+                { x: this.playArea.minX + 80, y: this.playArea.maxY - 80 },
+                { x: this.playArea.maxX - 80, y: this.playArea.maxY - 80 },
+                { x: this.playArea.centerX, y: this.playArea.minY + 80 }
+            ];
+            
+            for (const pos of safePositions) {
+                if (this.targets.length >= targetCount) break;
+                
+                const tooCloseToAsteroid = this.spaceBodies.some(body => 
+                    new Vector2(pos.x, pos.y).distance(body.position) < body.radius + 40
+                );
+                
+                if (!tooCloseToAsteroid) {
+                    this.targets.push(new Target(pos.x, pos.y, 'static'));
                 }
             }
-            
-            if (reachableTrajectories > maxAllowedSolutions) {
-                return false; // Too many solutions, too easy
-            }
         }
-        
-        return reachableTrajectories > 0 && reachableTrajectories <= maxAllowedSolutions;
     }
-    
-    generateFallbackTarget() {
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2;
-        const cannonPos = this.cannon.position;
+
+    generateAdvancedLevel() {
+        // Level 6+: Complex procedural levels
+        const levelModifier = (this.level - 6) % 3;
         
-        // Generate challenging positions that require gravity assists
-        const attempts = 100;
-        for (let i = 0; i < attempts; i++) {
-            let x, y;
-            
-            // Force challenging positions - far from cannon and requiring trajectory chains
-            const zones = [
-                // Far corners
-                () => ({ x: this.canvas.width - 80 - Math.random() * 60, y: 60 + Math.random() * 80 }),
-                () => ({ x: this.canvas.width - 80 - Math.random() * 60, y: this.canvas.height - 140 + Math.random() * 80 }),
-                () => ({ x: 60 + Math.random() * 80, y: 60 + Math.random() * 80 }),
-                
-                // Behind space bodies (shadow zones)
-                () => {
-                    if (this.spaceBodies.length > 0) {
-                        const body = this.spaceBodies[Math.floor(Math.random() * this.spaceBodies.length)];
-                        const angle = Math.random() * Math.PI * 2;
-                        const distance = body.radius + 50 + Math.random() * 40;
-                        return {
-                            x: body.position.x + Math.cos(angle) * distance,
-                            y: body.position.y + Math.sin(angle) * distance
-                        };
-                    }
-                    return { x: centerX + 200, y: centerY };
-                },
-                
-                // Far edges requiring slingshots
-                () => ({ x: centerX + 150 + Math.random() * 100, y: 60 + Math.random() * 60 }),
-                () => ({ x: centerX - 150 - Math.random() * 100, y: this.canvas.height - 120 + Math.random() * 60 }),
-                () => ({ x: this.canvas.width - 100, y: centerY + (Math.random() - 0.5) * 200 })
-            ];
-            
-            const zone = zones[Math.floor(Math.random() * zones.length)];
-            const pos = zone();
-            
-            // Ensure position is within bounds
-            pos.x = Math.max(60, Math.min(this.canvas.width - 60, pos.x));
-            pos.y = Math.max(60, Math.min(this.canvas.height - 60, pos.y));
-            
-            // Must be far from cannon (minimum distance based on level difficulty)
-            const minDistanceFromCannon = 150 + this.level * 20;
-            const distanceFromCannon = new Vector2(pos.x, pos.y).distance(cannonPos);
-            
-            if (distanceFromCannon < minDistanceFromCannon) continue;
-            
-            // Check if position doesn't overlap with space bodies
-            const isSafe = this.spaceBodies.every(body => 
-                new Vector2(pos.x, pos.y).distance(body.position) > body.radius + 40
-            );
-            
-            if (!isSafe) continue;
-            
-            // Additional check: ensure it's not in direct line of sight from cannon
-            if (this.hasDirectLineOfSight(cannonPos, new Vector2(pos.x, pos.y))) {
-                continue; // Skip positions with direct shots
-            }
-            
-            return pos;
+        switch (levelModifier) {
+            case 0:
+                this.generateSpiraLevel();
+                break;
+            case 1:
+                this.generateBinarySystemLevel();
+                break;
+            case 2:
+                this.generateMazeLevel();
+                break;
         }
-        
-        return null;
     }
-    
-    hasDirectLineOfSight(from, to) {
-        const direction = to.subtract(from);
-        const distance = direction.magnitude();
-        const step = direction.normalize().multiply(5);
-        let current = from.add(step.multiply(10)); // Start a bit away from cannon
+
+    generateSpiraLevel() {
+        // Spiral formation of bodies
+        const bodyCount = Math.min(8, 4 + Math.floor(this.level / 3));
         
-        while (current.distance(from) < distance - 20) {
-            // Check if current position intersects any space body
-            const blocked = this.spaceBodies.some(body => 
-                current.distance(body.position) < body.radius + 10
-            );
-            
-            if (blocked) return false; // Line of sight is blocked
-            
-            current = current.add(step);
-        }
-        
-        return true; // Direct line of sight exists
-    }
-    
-    generateSimpleTarget() {
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2;
-        const cannonPos = this.cannon.position;
-        
-        // Generate a simple target that's guaranteed to be reachable but still challenging
-        const attempts = 20;
-        for (let i = 0; i < attempts; i++) {
-            // Place targets in predictable but challenging positions
-            const positions = [
-                { x: centerX + 120, y: centerY - 80 },
-                { x: centerX - 120, y: centerY + 80 },
-                { x: this.canvas.width - 120, y: centerY },
-                { x: centerX, y: this.canvas.height - 80 },
-                { x: centerX + 150, y: 80 },
-                { x: 100, y: centerY }
-            ];
-            
-            const pos = positions[i % positions.length];
-            
-            // Add some randomness
-            pos.x += (Math.random() - 0.5) * 40;
-            pos.y += (Math.random() - 0.5) * 40;
+        for (let i = 0; i < bodyCount; i++) {
+            const angle = (i / bodyCount) * Math.PI * 3; // 1.5 spirals
+            const radius = (this.playArea.width * 0.1) + (i / bodyCount) * (this.playArea.width * 0.2);
+            const x = this.playArea.centerX + Math.cos(angle) * radius;
+            const y = this.playArea.centerY + Math.sin(angle) * radius;
             
             // Ensure within bounds
-            pos.x = Math.max(50, Math.min(this.canvas.width - 50, pos.x));
-            pos.y = Math.max(50, Math.min(this.canvas.height - 50, pos.y));
+            const clampedX = Math.max(this.playArea.minX + 50, Math.min(this.playArea.maxX - 50, x));
+            const clampedY = Math.max(this.playArea.minY + 50, Math.min(this.playArea.maxY - 50, y));
             
-            // Check if position is safe from space bodies
-            const isSafe = this.spaceBodies.every(body => 
-                new Vector2(pos.x, pos.y).distance(body.position) > body.radius + 30
-            );
+            const bodyType = ['asteroid', 'dwarf_planet', 'planet'][i % 3];
+            this.spaceBodies.push(new SpaceBody(clampedX, clampedY, bodyType));
+        }
+        
+        this.generateScatteredTargets(5);
+    }
+
+    generateBinarySystemLevel() {
+        // Two large central bodies with smaller satellites
+        const body1 = new SpaceBody(
+            this.playArea.centerX - this.playArea.width * 0.15,
+            this.playArea.centerY - this.playArea.height * 0.1,
+            'gas_giant'
+        );
+        const body2 = new SpaceBody(
+            this.playArea.centerX + this.playArea.width * 0.15,
+            this.playArea.centerY + this.playArea.height * 0.1,
+            'star'
+        );
+        this.spaceBodies.push(body1, body2);
+        
+        // Add satellite bodies
+        const satellites = 4;
+        for (let i = 0; i < satellites; i++) {
+            const angle = (i / satellites) * Math.PI * 2;
+            const distance = this.playArea.width * 0.25;
+            const x = this.playArea.centerX + Math.cos(angle) * distance;
+            const y = this.playArea.centerY + Math.sin(angle) * distance;
             
-            if (isSafe) {
-                return pos;
+            const clampedX = Math.max(this.playArea.minX + 50, Math.min(this.playArea.maxX - 50, x));
+            const clampedY = Math.max(this.playArea.minY + 50, Math.min(this.playArea.maxY - 50, y));
+            
+            this.spaceBodies.push(new SpaceBody(clampedX, clampedY, 'asteroid'));
+        }
+        
+        this.generateScatteredTargets(6);
+    }
+
+    generateMazeLevel() {
+        // Grid-like maze of bodies
+        const gridSize = Math.min(4, 2 + Math.floor(this.level / 4));
+        const cellWidth = this.playArea.width / (gridSize + 1);
+        const cellHeight = this.playArea.height / (gridSize + 1);
+        
+        for (let i = 1; i <= gridSize; i++) {
+            for (let j = 1; j <= gridSize; j++) {
+                if (Math.random() > 0.4) { // 60% chance to place a body
+                    const x = this.playArea.minX + i * cellWidth;
+                    const y = this.playArea.minY + j * cellHeight;
+                    
+                    const bodyType = ['asteroid', 'dwarf_planet', 'planet'][Math.floor(Math.random() * 3)];
+                    this.spaceBodies.push(new SpaceBody(x, y, bodyType));
+                }
             }
         }
         
-        return null;
+        this.generateScatteredTargets(7);
+    }
+
+    generateScatteredTargets(targetCount) {
+        // Generate targets scattered throughout the play area
+        for (let i = 0; i < targetCount; i++) {
+            let attempts = 0;
+            let placed = false;
+            
+            while (attempts < 50 && !placed) {
+                const x = this.playArea.minX + 60 + Math.random() * (this.playArea.width - 120);
+                const y = this.playArea.minY + 60 + Math.random() * (this.playArea.height - 120);
+                
+                // Ensure target is not too close to any space body
+                const tooCloseToBody = this.spaceBodies.some(body => 
+                    new Vector2(x, y).distance(body.position) < body.radius + 50
+                );
+                
+                // Ensure target is not too close to other targets
+                const tooCloseToTarget = this.targets.some(target => 
+                    new Vector2(x, y).distance(target.position) < 80
+                );
+                
+                // Ensure target is reasonably far from cannon
+                const distanceFromCannon = new Vector2(x, y).distance(this.cannon.position);
+                const minCannonDistance = Math.min(200, this.playArea.width * 0.4);
+                
+                if (!tooCloseToBody && !tooCloseToTarget && distanceFromCannon > minCannonDistance) {
+                    this.targets.push(new Target(x, y, 'static'));
+                    placed = true;
+                }
+                attempts++;
+            }
+        }
+        
+        // If we couldn't place enough targets, add fallback positions
+        while (this.targets.length < targetCount) {
+            const fallbackPositions = [
+                { x: this.playArea.maxX - 80, y: this.playArea.minY + 80 },
+                { x: this.playArea.minX + 80, y: this.playArea.maxY - 80 },
+                { x: this.playArea.maxX - 80, y: this.playArea.maxY - 80 },
+                { x: this.playArea.centerX, y: this.playArea.minY + 80 },
+                { x: this.playArea.centerX, y: this.playArea.maxY - 80 }
+            ];
+            
+            for (const pos of fallbackPositions) {
+                if (this.targets.length >= targetCount) break;
+                
+                const tooCloseToBody = this.spaceBodies.some(body => 
+                    new Vector2(pos.x, pos.y).distance(body.position) < body.radius + 50
+                );
+                
+                if (!tooCloseToBody) {
+                    this.targets.push(new Target(pos.x, pos.y, 'static'));
+                }
+            }
+        }
     }
     
 
