@@ -959,13 +959,13 @@ class Game {
     }
 
     generateAdvancedLevel() {
-        // Level 6+: Complex procedural levels
-        const levelModifier = (this.level - 6) % 3;
+        // Level 6+: Complex procedural levels with 10 different patterns
+        const levelModifier = (this.level - 6) % 10;
         console.log(`Generating advanced level ${this.level}, modifier: ${levelModifier}`);
         
         switch (levelModifier) {
             case 0:
-                console.log('Generating spiral level');
+                console.log('Generating spiral galaxy level');
                 this.generateSpiraLevel();
                 break;
             case 1:
@@ -975,6 +975,34 @@ class Game {
             case 2:
                 console.log('Generating maze level');
                 this.generateMazeLevel();
+                break;
+            case 3:
+                console.log('Generating orbital rings level');
+                this.generateOrbitalRingsLevel();
+                break;
+            case 4:
+                console.log('Generating cluster formation level');
+                this.generateClusterLevel();
+                break;
+            case 5:
+                console.log('Generating chain reaction level');
+                this.generateChainReactionLevel();
+                break;
+            case 6:
+                console.log('Generating gravitational lens level');
+                this.generateGravitationalLensLevel();
+                break;
+            case 7:
+                console.log('Generating pulsar field level');
+                this.generatePulsarFieldLevel();
+                break;
+            case 8:
+                console.log('Generating wormhole network level');
+                this.generateWormholeNetworkLevel();
+                break;
+            case 9:
+                console.log('Generating solar system level');
+                this.generateSolarSystemLevel();
                 break;
             default:
                 console.error(`Unexpected levelModifier: ${levelModifier}`);
@@ -1136,6 +1164,222 @@ class Game {
                 break;
             }
         }
+    }
+
+    // New advanced level types
+
+    generateOrbitalRingsLevel() {
+        // Concentric rings of bodies with targets between rings
+        const ringCount = Math.min(4, 2 + Math.floor(this.level / 8));
+        const bodyTypes = ['asteroid', 'dwarf_planet', 'planet', 'gas_giant'];
+        
+        for (let ring = 1; ring <= ringCount; ring++) {
+            const bodiesInRing = Math.min(6, 3 + ring);
+            const ringRadius = (this.playArea.width * 0.1) + (ring * this.playArea.width * 0.12);
+            
+            for (let i = 0; i < bodiesInRing; i++) {
+                const angle = (i / bodiesInRing) * Math.PI * 2 + (ring * 0.3); // Offset each ring
+                const x = this.playArea.centerX + Math.cos(angle) * ringRadius;
+                const y = this.playArea.centerY + Math.sin(angle) * ringRadius;
+                
+                const clampedX = Math.max(this.playArea.minX + 50, Math.min(this.playArea.maxX - 50, x));
+                const clampedY = Math.max(this.playArea.minY + 50, Math.min(this.playArea.maxY - 50, y));
+                
+                const bodyType = bodyTypes[(ring - 1) % bodyTypes.length];
+                this.spaceBodies.push(new SpaceBody(clampedX, clampedY, bodyType));
+            }
+        }
+        
+        this.generateScatteredTargets(4 + ringCount);
+    }
+
+    generateClusterLevel() {
+        // Multiple tight clusters of small bodies scattered across the field
+        const clusterCount = Math.min(5, 3 + Math.floor(this.level / 6));
+        const bodiesPerCluster = 3;
+        
+        for (let cluster = 0; cluster < clusterCount; cluster++) {
+            // Random cluster center
+            const clusterX = this.playArea.minX + 100 + Math.random() * (this.playArea.width - 200);
+            const clusterY = this.playArea.minY + 100 + Math.random() * (this.playArea.height - 200);
+            
+            for (let i = 0; i < bodiesPerCluster; i++) {
+                const angle = (i / bodiesPerCluster) * Math.PI * 2;
+                const distance = 40 + Math.random() * 30; // Tight cluster
+                const x = clusterX + Math.cos(angle) * distance;
+                const y = clusterY + Math.sin(angle) * distance;
+                
+                const clampedX = Math.max(this.playArea.minX + 50, Math.min(this.playArea.maxX - 50, x));
+                const clampedY = Math.max(this.playArea.minY + 50, Math.min(this.playArea.maxY - 50, y));
+                
+                this.spaceBodies.push(new SpaceBody(clampedX, clampedY, 'asteroid'));
+            }
+        }
+        
+        this.generateScatteredTargets(5);
+    }
+
+    generateChainReactionLevel() {
+        // Bodies arranged in a line that creates cascading gravity effects
+        const chainLength = Math.min(7, 4 + Math.floor(this.level / 5));
+        const bodyTypes = ['asteroid', 'dwarf_planet', 'planet', 'gas_giant', 'star'];
+        
+        // Create a curved chain across the screen
+        for (let i = 0; i < chainLength; i++) {
+            const progress = i / (chainLength - 1);
+            // Create an S-curve path
+            const x = this.playArea.minX + progress * this.playArea.width;
+            const curveHeight = Math.sin(progress * Math.PI * 2) * (this.playArea.height * 0.2);
+            const y = this.playArea.centerY + curveHeight;
+            
+            const clampedX = Math.max(this.playArea.minX + 50, Math.min(this.playArea.maxX - 50, x));
+            const clampedY = Math.max(this.playArea.minY + 50, Math.min(this.playArea.maxY - 50, y));
+            
+            const bodyType = bodyTypes[i % bodyTypes.length];
+            this.spaceBodies.push(new SpaceBody(clampedX, clampedY, bodyType));
+        }
+        
+        this.generateScatteredTargets(6);
+    }
+
+    generateGravitationalLensLevel() {
+        // One massive central body with smaller bodies orbiting, creating lensing effects
+        const centerBody = new SpaceBody(
+            this.playArea.centerX,
+            this.playArea.centerY,
+            'star' // Massive central star
+        );
+        this.spaceBodies.push(centerBody);
+        
+        // Add orbiting bodies at various distances
+        const orbitingBodies = Math.min(8, 4 + Math.floor(this.level / 4));
+        for (let i = 0; i < orbitingBodies; i++) {
+            const angle = (i / orbitingBodies) * Math.PI * 2;
+            const orbitRadius = (this.playArea.width * 0.15) + (i * this.playArea.width * 0.08);
+            const x = this.playArea.centerX + Math.cos(angle) * orbitRadius;
+            const y = this.playArea.centerY + Math.sin(angle) * orbitRadius;
+            
+            const clampedX = Math.max(this.playArea.minX + 50, Math.min(this.playArea.maxX - 50, x));
+            const clampedY = Math.max(this.playArea.minY + 50, Math.min(this.playArea.maxY - 50, y));
+            
+            const bodyType = ['asteroid', 'dwarf_planet', 'planet'][i % 3];
+            this.spaceBodies.push(new SpaceBody(clampedX, clampedY, bodyType));
+        }
+        
+        this.generateScatteredTargets(5);
+    }
+
+    generatePulsarFieldLevel() {
+        // Small, high-mass bodies (neutron stars) scattered in a field
+        const pulsarCount = Math.min(6, 3 + Math.floor(this.level / 7));
+        
+        for (let i = 0; i < pulsarCount; i++) {
+            let attempts = 0;
+            let placed = false;
+            
+            while (attempts < 20 && !placed) {
+                const x = this.playArea.minX + 80 + Math.random() * (this.playArea.width - 160);
+                const y = this.playArea.minY + 80 + Math.random() * (this.playArea.height - 160);
+                
+                // Ensure pulsars aren't too close to each other
+                const tooClose = this.spaceBodies.some(body => 
+                    new Vector2(x, y).distance(body.position) < 120
+                );
+                
+                if (!tooClose) {
+                    // Create a small but very massive body (simulating neutron star)
+                    const pulsar = new SpaceBody(x, y, 'dwarf_planet');
+                    pulsar.mass = pulsar.mass * 1.8; // Increase mass for stronger gravity
+                    this.spaceBodies.push(pulsar);
+                    placed = true;
+                }
+                attempts++;
+            }
+        }
+        
+        this.generateScatteredTargets(4);
+    }
+
+    generateWormholeNetworkLevel() {
+        // Pairs of bodies that simulate "wormhole" connections
+        const wormholePairs = Math.min(3, 2 + Math.floor(this.level / 10));
+        const bodyTypes = ['planet', 'gas_giant'];
+        
+        for (let pair = 0; pair < wormholePairs; pair++) {
+            // Create two bodies far apart (wormhole entrance/exit)
+            const angle1 = (pair / wormholePairs) * Math.PI * 2;
+            const angle2 = angle1 + Math.PI; // Opposite side
+            
+            const radius = this.playArea.width * 0.25;
+            const x1 = this.playArea.centerX + Math.cos(angle1) * radius;
+            const y1 = this.playArea.centerY + Math.sin(angle1) * radius;
+            const x2 = this.playArea.centerX + Math.cos(angle2) * radius;
+            const y2 = this.playArea.centerY + Math.sin(angle2) * radius;
+            
+            const clampedX1 = Math.max(this.playArea.minX + 60, Math.min(this.playArea.maxX - 60, x1));
+            const clampedY1 = Math.max(this.playArea.minY + 60, Math.min(this.playArea.maxY - 60, y1));
+            const clampedX2 = Math.max(this.playArea.minX + 60, Math.min(this.playArea.maxX - 60, x2));
+            const clampedY2 = Math.max(this.playArea.minY + 60, Math.min(this.playArea.maxY - 60, y2));
+            
+            const bodyType = bodyTypes[pair % bodyTypes.length];
+            this.spaceBodies.push(new SpaceBody(clampedX1, clampedY1, bodyType));
+            this.spaceBodies.push(new SpaceBody(clampedX2, clampedY2, bodyType));
+        }
+        
+        this.generateScatteredTargets(6);
+    }
+
+    generateSolarSystemLevel() {
+        // Realistic solar system with sun, planets, and asteroid belt
+        
+        // Central star
+        const sun = new SpaceBody(this.playArea.centerX, this.playArea.centerY, 'star');
+        this.spaceBodies.push(sun);
+        
+        // Inner planets (small, close)
+        const innerPlanets = 2;
+        for (let i = 0; i < innerPlanets; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = this.playArea.width * 0.12 + i * this.playArea.width * 0.06;
+            const x = this.playArea.centerX + Math.cos(angle) * distance;
+            const y = this.playArea.centerY + Math.sin(angle) * distance;
+            
+            const clampedX = Math.max(this.playArea.minX + 50, Math.min(this.playArea.maxX - 50, x));
+            const clampedY = Math.max(this.playArea.minY + 50, Math.min(this.playArea.maxY - 50, y));
+            
+            this.spaceBodies.push(new SpaceBody(clampedX, clampedY, 'planet'));
+        }
+        
+        // Asteroid belt (ring of small bodies)
+        const asteroidCount = 6;
+        const beltRadius = this.playArea.width * 0.25;
+        for (let i = 0; i < asteroidCount; i++) {
+            const angle = (i / asteroidCount) * Math.PI * 2 + Math.random() * 0.5;
+            const distance = beltRadius + (Math.random() - 0.5) * (this.playArea.width * 0.05);
+            const x = this.playArea.centerX + Math.cos(angle) * distance;
+            const y = this.playArea.centerY + Math.sin(angle) * distance;
+            
+            const clampedX = Math.max(this.playArea.minX + 50, Math.min(this.playArea.maxX - 50, x));
+            const clampedY = Math.max(this.playArea.minY + 50, Math.min(this.playArea.maxY - 50, y));
+            
+            this.spaceBodies.push(new SpaceBody(clampedX, clampedY, 'asteroid'));
+        }
+        
+        // Outer gas giants
+        const outerPlanets = 2;
+        for (let i = 0; i < outerPlanets; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = this.playArea.width * 0.35 + i * this.playArea.width * 0.08;
+            const x = this.playArea.centerX + Math.cos(angle) * distance;
+            const y = this.playArea.centerY + Math.sin(angle) * distance;
+            
+            if (x > this.playArea.minX + 60 && x < this.playArea.maxX - 60 &&
+                y > this.playArea.minY + 60 && y < this.playArea.maxY - 60) {
+                this.spaceBodies.push(new SpaceBody(x, y, 'gas_giant'));
+            }
+        }
+        
+        this.generateScatteredTargets(7);
     }
     
 
