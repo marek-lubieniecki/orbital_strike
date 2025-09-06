@@ -600,10 +600,9 @@ class Game {
         const isVertical = window.innerHeight > window.innerWidth || this.isMobile;
         
         if (isVertical || this.isMobile) {
-            // Mobile layout - use full screen with minimal margins
-            const margin = 4;
-            this.canvas.width = availableWidth - margin;
-            this.canvas.height = availableHeight - margin;
+            // Mobile layout - use full screen with no margins
+            this.canvas.width = availableWidth;
+            this.canvas.height = availableHeight;
         } else {
             // Desktop/horizontal layout  
             const maxWidth = availableWidth - 40;
