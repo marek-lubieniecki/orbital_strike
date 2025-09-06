@@ -512,6 +512,24 @@ class Cannon {
 
     draw(ctx) {
         ctx.save();
+        
+        // Draw mounting base if cannon is mounted on a body
+        if (this.isMounted && this.mountedBody) {
+            // Draw connection line from body center to cannon
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(this.mountedBody.position.x, this.mountedBody.position.y);
+            ctx.lineTo(this.position.x, this.position.y);
+            ctx.stroke();
+            
+            // Draw mounting platform
+            ctx.fillStyle = '#555';
+            ctx.beginPath();
+            ctx.arc(this.position.x, this.position.y, 12, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
         ctx.translate(this.position.x, this.position.y);
         ctx.rotate(this.angle);
         
@@ -672,15 +690,9 @@ class Game {
         // Reset level rocket counter
         this.levelRockets = 0;
         
-        // Position cannon appropriately for screen orientation
-        const isVertical = this.canvas.height > this.canvas.width;
-        if (isVertical) {
-            // For vertical screens, keep cannon at bottom center-left
-            this.cannon = new Cannon(this.canvas.width * 0.2, this.canvas.height - 50);
-        } else {
-            // For horizontal screens, use traditional bottom-left
-            this.cannon = new Cannon(50, this.canvas.height - 50);
-        }
+        // Position cannon - will be set during level generation
+        // Some levels will place it on body surfaces, others use default position
+        this.cannon = null;
         
         try {
             // Try to load level from JSON file first (for custom levels)
@@ -783,6 +795,8 @@ class Game {
 
     generateTutorialLevel() {
         // Level 1: No bodies - pure tutorial to learn shooting mechanics
+        this.setupDefaultCannonPosition();
+        
         const targetCount = 3;
         
         // Create simple targets in easy-to-reach positions
@@ -798,7 +812,9 @@ class Game {
     }
 
     generateSingleBodyLevel() {
-        // Level 2: Single body - learn gravity assists
+        // Level 2: Single body - learn basic gravity assists, simple version
+        this.setupDefaultCannonPosition(); // Keep cannon in corner for simplicity
+        
         const body = new SpaceBody(
             Math.max(this.playArea.minX + 100, this.playArea.centerX - this.playArea.width * 0.2),
             this.playArea.centerY,
@@ -806,11 +822,14 @@ class Game {
         );
         this.spaceBodies.push(body);
         
-        // Create targets that require shooting around the body
+        // Create targets that teach basic gravity assists (all reachable, but some easier with gravity)
         const targetPositions = [
-            { x: Math.min(this.playArea.maxX - 80, this.playArea.centerX + this.playArea.width * 0.3), y: this.playArea.centerY - this.playArea.height * 0.15 },
-            { x: Math.min(this.playArea.maxX - 80, this.playArea.centerX + this.playArea.width * 0.3), y: this.playArea.centerY + this.playArea.height * 0.15 },
-            { x: Math.min(this.playArea.maxX - 60, this.playArea.centerX + this.playArea.width * 0.35), y: this.playArea.centerY }
+            // Easy direct shot
+            { x: Math.min(this.playArea.maxX - 80, this.playArea.centerX + this.playArea.width * 0.35), y: this.playArea.centerY },
+            // Target that benefits from gravity assist but is still reachable directly
+            { x: Math.min(this.playArea.maxX - 80, this.playArea.centerX + this.playArea.width * 0.25), y: this.playArea.centerY - this.playArea.height * 0.2 },
+            // Target that's easier with gravity assist
+            { x: Math.min(this.playArea.maxX - 60, this.playArea.centerX + this.playArea.width * 0.2), y: this.playArea.centerY + this.playArea.height * 0.15 }
         ];
         
         targetPositions.forEach(pos => {
@@ -819,7 +838,9 @@ class Game {
     }
 
     generateDoubleBodyLevel() {
-        // Level 3: Two bodies for more complex trajectories
+        // Level 3: Two bodies - intermediate gravity assists, still accessible
+        this.setupDefaultCannonPosition(); // Keep cannon in corner
+        
         const body1 = new SpaceBody(
             Math.max(this.playArea.minX + 80, this.playArea.centerX - this.playArea.width * 0.25),
             Math.max(this.playArea.minY + 80, this.playArea.centerY - this.playArea.height * 0.2),
@@ -832,11 +853,14 @@ class Game {
         );
         this.spaceBodies.push(body1, body2);
         
-        // Create targets requiring trajectory planning
+        // Create targets that can be reached but benefit from gravity assists
         const targetPositions = [
+            // Direct shot possible but tricky
             { x: Math.min(this.playArea.maxX - 60, this.playArea.centerX + this.playArea.width * 0.35), y: Math.max(this.playArea.minY + 60, this.playArea.centerY - this.playArea.height * 0.25) },
-            { x: Math.max(this.playArea.minX + 60, this.playArea.centerX - this.playArea.width * 0.3), y: Math.min(this.playArea.maxY - 60, this.playArea.centerY + this.playArea.height * 0.3) },
-            { x: Math.min(this.playArea.maxX - 60, this.playArea.centerX + this.playArea.width * 0.25), y: Math.min(this.playArea.maxY - 60, this.playArea.centerY + this.playArea.height * 0.25) }
+            // Better with gravity assist from body1
+            { x: Math.max(this.playArea.minX + 60, this.playArea.centerX - this.playArea.width * 0.2), y: Math.min(this.playArea.maxY - 60, this.playArea.centerY + this.playArea.height * 0.3) },
+            // Requires bouncing between bodies (moderate difficulty)
+            { x: Math.min(this.playArea.maxX - 60, this.playArea.centerX + this.playArea.width * 0.2), y: Math.min(this.playArea.maxY - 60, this.playArea.centerY + this.playArea.height * 0.2) }
         ];
         
         targetPositions.forEach(pos => {
@@ -845,7 +869,9 @@ class Game {
     }
 
     generateCorridorLevel() {
-        // Level 4: Two large bodies creating a corridor
+        // Level 4: Two large bodies creating a corridor, default cannon position
+        this.setupDefaultCannonPosition();
+        
         const body1 = new SpaceBody(
             Math.max(this.playArea.minX + 120, this.playArea.centerX - this.playArea.width * 0.2),
             Math.max(this.playArea.minY + 120, this.playArea.centerY - this.playArea.height * 0.15),
@@ -872,31 +898,26 @@ class Game {
     }
 
     generateAsteroidFieldLevel() {
-        // Level 5: Asteroid field - many small bodies
-        const asteroidCount = Math.floor(this.playArea.width * this.playArea.height / 15000); // Density based on screen size
-        const minAsteroids = 6;
-        const maxAsteroids = 12;
+        // Level 5: Simple asteroid field - traditional cannon position
+        this.setupDefaultCannonPosition(); // Keep cannon in corner for learning
+        
+        const asteroidCount = Math.floor(this.playArea.width * this.playArea.height / 20000); // Less dense for easier learning
+        const minAsteroids = 4;
+        const maxAsteroids = 8;
         const actualCount = Math.max(minAsteroids, Math.min(maxAsteroids, asteroidCount));
         
-        // Create asteroid field
+        // Create simpler asteroid field with clear paths
         for (let i = 0; i < actualCount; i++) {
             let attempts = 0;
             let placed = false;
             
             while (attempts < 20 && !placed) {
-                const x = this.playArea.minX + Math.random() * this.playArea.width;
-                const y = this.playArea.minY + Math.random() * this.playArea.height;
+                const x = this.playArea.minX + 150 + Math.random() * (this.playArea.width - 300); // Keep away from edges
+                const y = this.playArea.minY + 100 + Math.random() * (this.playArea.height - 200);
                 
-                // Ensure asteroids don't block the immediate cannon area
-                const cannonArea = { x: this.cannon.position.x, y: this.cannon.position.y, radius: 100 };
-                if (new Vector2(x, y).distance(new Vector2(cannonArea.x, cannonArea.y)) < cannonArea.radius) {
-                    attempts++;
-                    continue;
-                }
-                
-                // Ensure asteroids aren't too close to each other
+                // Ensure asteroids aren't too close to each other and leave clear paths
                 const tooClose = this.spaceBodies.some(body => 
-                    new Vector2(x, y).distance(body.position) < 80
+                    new Vector2(x, y).distance(body.position) < 120 // More spacing for easier navigation
                 );
                 
                 if (!tooClose) {
@@ -1016,6 +1037,7 @@ class Game {
 
     generateSpiraLevel() {
         // Spiral formation of bodies
+        this.setupDefaultCannonPosition();
         const bodyCount = Math.min(8, 4 + Math.floor(this.level / 3));
         
         for (let i = 0; i < bodyCount; i++) {
@@ -1037,6 +1059,7 @@ class Game {
 
     generateBinarySystemLevel() {
         // Two large central bodies with smaller satellites
+        this.setupDefaultCannonPosition();
         const body1 = new SpaceBody(
             this.playArea.centerX - this.playArea.width * 0.15,
             this.playArea.centerY - this.playArea.height * 0.1,
@@ -1068,6 +1091,7 @@ class Game {
 
     generateMazeLevel() {
         // Grid-like maze of bodies
+        this.setupDefaultCannonPosition();
         const gridSize = Math.min(4, 2 + Math.floor(this.level / 4));
         const cellWidth = this.playArea.width / (gridSize + 1);
         const cellHeight = this.playArea.height / (gridSize + 1);
@@ -1166,10 +1190,45 @@ class Game {
         }
     }
 
+    // Cannon positioning methods
+
+    setupDefaultCannonPosition() {
+        // Default cannon positioning for standard levels
+        const isVertical = this.canvas.height > this.canvas.width;
+        if (isVertical) {
+            // For vertical screens, keep cannon at bottom center-left
+            this.cannon = new Cannon(this.canvas.width * 0.2, this.canvas.height - 50);
+        } else {
+            // For horizontal screens, use traditional bottom-left
+            this.cannon = new Cannon(50, this.canvas.height - 50);
+        }
+    }
+
+    mountCannonOnBody(body, angleOffset = 0) {
+        // Mount cannon on the surface of a celestial body
+        // angleOffset allows positioning cannon at different points on the body
+        const mountAngle = angleOffset;
+        const mountDistance = body.radius + 10; // Just outside the body surface
+        
+        const cannonX = body.position.x + Math.cos(mountAngle) * mountDistance;
+        const cannonY = body.position.y + Math.sin(mountAngle) * mountDistance;
+        
+        this.cannon = new Cannon(cannonX, cannonY);
+        
+        // Store the mounting info for visual indicators
+        this.cannon.mountedBody = body;
+        this.cannon.mountAngle = mountAngle;
+        this.cannon.isMounted = true;
+        
+        console.log(`Cannon mounted on ${body.type} at angle ${(mountAngle * 180 / Math.PI).toFixed(0)}°`);
+    }
+
     // New advanced level types
 
     generateOrbitalRingsLevel() {
-        // Concentric rings of bodies with targets between rings
+        // Concentric rings of bodies with targets between rings, default cannon
+        this.setupDefaultCannonPosition();
+        
         const ringCount = Math.min(4, 2 + Math.floor(this.level / 8));
         const bodyTypes = ['asteroid', 'dwarf_planet', 'planet', 'gas_giant'];
         
@@ -1194,9 +1253,11 @@ class Game {
     }
 
     generateClusterLevel() {
-        // Multiple tight clusters of small bodies scattered across the field
+        // Multiple tight clusters with cannon mounted on central cluster
+        // This introduces body-mounted mechanics at higher levels
         const clusterCount = Math.min(5, 3 + Math.floor(this.level / 6));
         const bodiesPerCluster = 3;
+        let cannonMounted = false;
         
         for (let cluster = 0; cluster < clusterCount; cluster++) {
             // Random cluster center
@@ -1212,8 +1273,20 @@ class Game {
                 const clampedX = Math.max(this.playArea.minX + 50, Math.min(this.playArea.maxX - 50, x));
                 const clampedY = Math.max(this.playArea.minY + 50, Math.min(this.playArea.maxY - 50, y));
                 
-                this.spaceBodies.push(new SpaceBody(clampedX, clampedY, 'asteroid'));
+                const body = new SpaceBody(clampedX, clampedY, 'asteroid');
+                this.spaceBodies.push(body);
+                
+                // Mount cannon on first body of first cluster
+                if (cluster === 0 && i === 0) {
+                    this.mountCannonOnBody(body, Math.random() * Math.PI * 2); // Random facing direction
+                    cannonMounted = true;
+                }
             }
+        }
+        
+        // Fallback if mounting failed
+        if (!cannonMounted) {
+            this.setupDefaultCannonPosition();
         }
         
         this.generateScatteredTargets(5);
@@ -1221,6 +1294,7 @@ class Game {
 
     generateChainReactionLevel() {
         // Bodies arranged in a line that creates cascading gravity effects
+        this.setupDefaultCannonPosition();
         const chainLength = Math.min(7, 4 + Math.floor(this.level / 5));
         const bodyTypes = ['asteroid', 'dwarf_planet', 'planet', 'gas_giant', 'star'];
         
@@ -1244,12 +1318,25 @@ class Game {
 
     generateGravitationalLensLevel() {
         // One massive central body with smaller bodies orbiting, creating lensing effects
+        // Cannon mounted on an orbiting body
         const centerBody = new SpaceBody(
             this.playArea.centerX,
             this.playArea.centerY,
             'star' // Massive central star
         );
         this.spaceBodies.push(centerBody);
+        
+        // Create the cannon platform (first orbiting body)
+        const cannonPlatform = new SpaceBody(
+            this.playArea.centerX - this.playArea.width * 0.2,
+            this.playArea.centerY - this.playArea.height * 0.1,
+            'planet'
+        );
+        this.spaceBodies.push(cannonPlatform);
+        
+        // Mount cannon on the platform, facing toward the center star
+        const angleToCenter = Math.atan2(centerBody.position.y - cannonPlatform.position.y, centerBody.position.x - cannonPlatform.position.x);
+        this.mountCannonOnBody(cannonPlatform, angleToCenter);
         
         // Add orbiting bodies at various distances
         const orbitingBodies = Math.min(8, 4 + Math.floor(this.level / 4));
@@ -1271,6 +1358,7 @@ class Game {
 
     generatePulsarFieldLevel() {
         // Small, high-mass bodies (neutron stars) scattered in a field
+        this.setupDefaultCannonPosition();
         const pulsarCount = Math.min(6, 3 + Math.floor(this.level / 7));
         
         for (let i = 0; i < pulsarCount; i++) {
@@ -1302,6 +1390,7 @@ class Game {
 
     generateWormholeNetworkLevel() {
         // Pairs of bodies that simulate "wormhole" connections
+        this.setupDefaultCannonPosition();
         const wormholePairs = Math.min(3, 2 + Math.floor(this.level / 10));
         const bodyTypes = ['planet', 'gas_giant'];
         
@@ -1331,6 +1420,7 @@ class Game {
 
     generateSolarSystemLevel() {
         // Realistic solar system with sun, planets, and asteroid belt
+        this.setupDefaultCannonPosition();
         
         // Central star
         const sun = new SpaceBody(this.playArea.centerX, this.playArea.centerY, 'star');
