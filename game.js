@@ -1204,23 +1204,112 @@ class Game {
         }
     }
 
-    mountCannonOnBody(body, angleOffset = 0) {
+    mountCannonOnBody(body, preferredAngle = 0) {
         // Mount cannon on the surface of a celestial body
-        // angleOffset allows positioning cannon at different points on the body
-        const mountAngle = angleOffset;
-        const mountDistance = body.radius + 10; // Just outside the body surface
+        // preferredAngle is the desired mounting angle, but will be adjusted if blocked
         
-        const cannonX = body.position.x + Math.cos(mountAngle) * mountDistance;
-        const cannonY = body.position.y + Math.sin(mountAngle) * mountDistance;
+        const mountDistance = body.radius + 10; // Just outside the body surface
+        const minShootingClearance = 120; // Minimum clear distance for shooting
+        
+        // Try the preferred angle first, then search around it
+        const anglesToTry = [];
+        
+        // Add preferred angle first
+        anglesToTry.push(preferredAngle);
+        
+        // Add angles in increasing increments around the preferred angle
+        for (let increment = Math.PI / 8; increment <= Math.PI * 2; increment += Math.PI / 8) {
+            anglesToTry.push(preferredAngle + increment);
+            anglesToTry.push(preferredAngle - increment);
+        }
+        
+        let bestAngle = preferredAngle;
+        let maxClearance = 0;
+        
+        for (const testAngle of anglesToTry) {
+            const cannonX = body.position.x + Math.cos(testAngle) * mountDistance;
+            const cannonY = body.position.y + Math.sin(testAngle) * mountDistance;
+            
+            // Check if this position is within play area
+            if (cannonX < this.playArea.minX + 30 || cannonX > this.playArea.maxX - 30 ||
+                cannonY < this.playArea.minY + 30 || cannonY > this.playArea.maxY - 30) {
+                continue;
+            }
+            
+            // Calculate minimum clearance in all directions from this cannon position
+            const clearance = this.calculateShootingClearance(cannonX, cannonY, body);
+            
+            if (clearance > maxClearance) {
+                maxClearance = clearance;
+                bestAngle = testAngle;
+                
+                // If we found good clearance, use it
+                if (clearance >= minShootingClearance) {
+                    break;
+                }
+            }
+        }
+        
+        const cannonX = body.position.x + Math.cos(bestAngle) * mountDistance;
+        const cannonY = body.position.y + Math.sin(bestAngle) * mountDistance;
         
         this.cannon = new Cannon(cannonX, cannonY);
         
         // Store the mounting info for visual indicators
         this.cannon.mountedBody = body;
-        this.cannon.mountAngle = mountAngle;
+        this.cannon.mountAngle = bestAngle;
         this.cannon.isMounted = true;
         
-        console.log(`Cannon mounted on ${body.type} at angle ${(mountAngle * 180 / Math.PI).toFixed(0)}°`);
+        console.log(`Cannon mounted on ${body.type} at angle ${(bestAngle * 180 / Math.PI).toFixed(0)}° with ${maxClearance.toFixed(0)} clearance`);
+    }
+
+    calculateShootingClearance(cannonX, cannonY, mountedBody) {
+        // Calculate the minimum clear distance in any shooting direction
+        let minClearance = Infinity;
+        const testAngles = 16; // Test shooting angles around the cannon
+        
+        for (let i = 0; i < testAngles; i++) {
+            const shootAngle = (i / testAngles) * Math.PI * 2;
+            let clearance = this.getDirectionalClearance(cannonX, cannonY, shootAngle, mountedBody);
+            
+            if (clearance < minClearance) {
+                minClearance = clearance;
+            }
+        }
+        
+        return minClearance;
+    }
+    
+    getDirectionalClearance(cannonX, cannonY, shootAngle, mountedBody) {
+        // Cast a ray in the shooting direction and find the nearest obstacle
+        const rayStep = 10;
+        const maxRange = Math.max(this.playArea.width, this.playArea.height);
+        
+        for (let distance = rayStep; distance < maxRange; distance += rayStep) {
+            const testX = cannonX + Math.cos(shootAngle) * distance;
+            const testY = cannonY + Math.sin(shootAngle) * distance;
+            
+            // Check if ray hits play area boundary
+            if (testX < this.playArea.minX || testX > this.playArea.maxX ||
+                testY < this.playArea.minY || testY > this.playArea.maxY) {
+                return distance;
+            }
+            
+            // Check collision with other bodies (excluding the mounted body)
+            for (const body of this.spaceBodies) {
+                if (body === mountedBody) continue;
+                
+                const dx = testX - body.position.x;
+                const dy = testY - body.position.y;
+                const distanceToBody = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distanceToBody <= body.radius + 20) { // Add small buffer
+                    return distance;
+                }
+            }
+        }
+        
+        return maxRange;
     }
 
     // New advanced level types
