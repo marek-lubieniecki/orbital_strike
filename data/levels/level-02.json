@@ -9,16 +9,16 @@
       "id": "asteroid-1",
       "type": "asteroid",
       "position": {
-        "x": "centerX - 120",
-        "y": "centerY - 60"
+        "x": "centerX - Math.min(120, canvasWidth * 0.3)",
+        "y": "centerY - Math.min(60, canvasHeight * 0.12)"
       }
     },
     {
       "id": "dwarf-1",
       "type": "dwarf_planet",
       "position": {
-        "x": "centerX + 80",
-        "y": "centerY + 80"
+        "x": "centerX + Math.min(80, canvasWidth * 0.2)",
+        "y": "centerY + Math.min(80, canvasHeight * 0.16)"
       }
     }
   ],
@@ -26,23 +26,23 @@
     {
       "id": "target-1",
       "position": {
-        "x": "centerX + 150",
-        "y": "centerY - 120"
+        "x": "Math.min(centerX + 150, canvasWidth - 60)",
+        "y": "Math.max(centerY - 120, 60)"
       },
       "movementType": "static"
     },
     {
       "id": "target-2",
       "position": {
-        "x": "centerX - 80",
-        "y": "centerY + 140"
+        "x": "Math.max(centerX - 80, 60)",
+        "y": "Math.min(centerY + 140, canvasHeight - 60)"
       },
       "movementType": "static"
     },
     {
       "id": "target-3",
       "position": {
-        "x": "canvasWidth - 80",
+        "x": "Math.max(canvasWidth - 80, centerX + 60)",
         "y": "centerY"
       },
       "movementType": "static"
@@ -51,7 +51,7 @@
       "id": "target-4",
       "position": {
         "x": "centerX",
-        "y": "canvasHeight - 60"
+        "y": "Math.max(canvasHeight - 60, centerY + 80)"
       },
       "movementType": "static"
     }

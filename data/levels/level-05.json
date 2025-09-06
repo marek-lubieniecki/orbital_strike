@@ -9,39 +9,39 @@
       "id": "gas-giant-1",
       "type": "gas_giant",
       "position": {
-        "x": "centerX - 130",
-        "y": "centerY - 30"
+        "x": "Math.max(centerX - 130, 120)",
+        "y": "centerY - Math.min(30, canvasHeight * 0.06)"
       }
     },
     {
       "id": "planet-1",
       "type": "planet",
       "position": {
-        "x": "centerX - 70",
-        "y": "centerY + 30"
+        "x": "centerX - Math.min(70, canvasWidth * 0.18)",
+        "y": "centerY + Math.min(30, canvasHeight * 0.06)"
       }
     },
     {
       "id": "dwarf-1",
       "type": "dwarf_planet",
       "position": {
-        "x": "centerX + 120",
-        "y": "centerY - 80"
+        "x": "Math.min(centerX + 120, canvasWidth - 100)",
+        "y": "Math.max(centerY - 80, 100)"
       }
     },
     {
       "id": "asteroid-1",
       "type": "asteroid",
       "position": {
-        "x": "centerX + 80",
-        "y": "centerY + 120"
+        "x": "centerX + Math.min(80, canvasWidth * 0.2)",
+        "y": "Math.min(centerY + 120, canvasHeight - 100)"
       }
     },
     {
       "id": "star-1",
       "type": "star",
       "position": {
-        "x": "centerX + 200",
+        "x": "Math.min(centerX + 200, canvasWidth - 120)",
         "y": "centerY"
       }
     }
@@ -50,39 +50,39 @@
     {
       "id": "target-1",
       "position": {
-        "x": "80",
-        "y": "80"
+        "x": "Math.max(80, canvasWidth * 0.15)",
+        "y": "Math.max(80, canvasHeight * 0.15)"
       },
       "movementType": "static"
     },
     {
       "id": "target-2", 
       "position": {
-        "x": "canvasWidth - 80",
-        "y": "80"
+        "x": "Math.max(canvasWidth - 80, centerX + 120)",
+        "y": "Math.max(80, canvasHeight * 0.15)"
       },
       "movementType": "static"
     },
     {
       "id": "target-3",
       "position": {
-        "x": "80",
-        "y": "canvasHeight - 80"
+        "x": "Math.max(80, canvasWidth * 0.15)",
+        "y": "Math.max(canvasHeight - 80, centerY + 120)"
       },
       "movementType": "static"
     },
     {
       "id": "target-4",
       "position": {
-        "x": "canvasWidth - 80",
-        "y": "canvasHeight - 80"
+        "x": "Math.max(canvasWidth - 80, centerX + 120)",
+        "y": "Math.max(canvasHeight - 80, centerY + 120)"
       },
       "movementType": "static"
     },
     {
       "id": "target-5",
       "position": {
-        "x": "centerX - 280",
+        "x": "Math.max(centerX - 280, 60)",
         "y": "centerY"
       },
       "movementType": "static"
@@ -91,7 +91,7 @@
       "id": "target-6",
       "position": {
         "x": "centerX",
-        "y": "60"
+        "y": "Math.max(60, canvasHeight * 0.12)"
       },
       "movementType": "static"
     },
@@ -99,7 +99,7 @@
       "id": "target-7",
       "position": {
         "x": "centerX",
-        "y": "canvasHeight - 60"
+        "y": "Math.max(canvasHeight - 60, centerY + 100)"
       },
       "movementType": "static"
     }
