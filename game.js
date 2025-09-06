@@ -844,19 +844,8 @@ class Game {
         );
         this.spaceBodies.push(body);
         
-        // Create targets that teach basic gravity assists (all reachable, but some easier with gravity)
-        const targetPositions = [
-            // Easy direct shot
-            { x: Math.min(this.playArea.maxX - 80, this.playArea.centerX + this.playArea.width * 0.35), y: this.playArea.centerY },
-            // Target that benefits from gravity assist but is still reachable directly
-            { x: Math.min(this.playArea.maxX - 80, this.playArea.centerX + this.playArea.width * 0.25), y: this.playArea.centerY - this.playArea.height * 0.2 },
-            // Target that's easier with gravity assist
-            { x: Math.min(this.playArea.maxX - 60, this.playArea.centerX + this.playArea.width * 0.2), y: this.playArea.centerY + this.playArea.height * 0.15 }
-        ];
-        
-        targetPositions.forEach(pos => {
-            this.targets.push(new Target(pos.x, pos.y, 'static'));
-        });
+        // Generate targets with collision checking to avoid overlapping with body
+        this.generateSafeTargets(3);
     }
 
     generateDoubleBodyLevel() {
@@ -875,19 +864,8 @@ class Game {
         );
         this.spaceBodies.push(body1, body2);
         
-        // Create targets that can be reached but benefit from gravity assists
-        const targetPositions = [
-            // Direct shot possible but tricky
-            { x: Math.min(this.playArea.maxX - 60, this.playArea.centerX + this.playArea.width * 0.35), y: Math.max(this.playArea.minY + 60, this.playArea.centerY - this.playArea.height * 0.25) },
-            // Better with gravity assist from body1
-            { x: Math.max(this.playArea.minX + 60, this.playArea.centerX - this.playArea.width * 0.2), y: Math.min(this.playArea.maxY - 60, this.playArea.centerY + this.playArea.height * 0.3) },
-            // Requires bouncing between bodies (moderate difficulty)
-            { x: Math.min(this.playArea.maxX - 60, this.playArea.centerX + this.playArea.width * 0.2), y: Math.min(this.playArea.maxY - 60, this.playArea.centerY + this.playArea.height * 0.2) }
-        ];
-        
-        targetPositions.forEach(pos => {
-            this.targets.push(new Target(pos.x, pos.y, 'static'));
-        });
+        // Generate targets with collision checking to avoid overlapping with bodies
+        this.generateSafeTargets(3);
     }
 
     generateCorridorLevel() {
@@ -906,17 +884,8 @@ class Game {
         );
         this.spaceBodies.push(body1, body2);
         
-        // Create targets that require threading between the bodies
-        const targetPositions = [
-            { x: Math.min(this.playArea.maxX - 60, this.playArea.centerX + this.playArea.width * 0.4), y: Math.max(this.playArea.minY + 60, this.playArea.centerY - this.playArea.height * 0.3) },
-            { x: Math.max(this.playArea.minX + 60, this.playArea.centerX - this.playArea.width * 0.35), y: Math.min(this.playArea.maxY - 60, this.playArea.centerY + this.playArea.height * 0.35) },
-            { x: this.playArea.centerX, y: Math.max(this.playArea.minY + 60, this.playArea.centerY - this.playArea.height * 0.4) },
-            { x: this.playArea.centerX, y: Math.min(this.playArea.maxY - 60, this.playArea.centerY + this.playArea.height * 0.4) }
-        ];
-        
-        targetPositions.forEach(pos => {
-            this.targets.push(new Target(pos.x, pos.y, 'static'));
-        });
+        // Generate targets with collision checking to avoid overlapping with corridor bodies
+        this.generateSafeTargets(4);
     }
 
     generateAsteroidFieldLevel() {
@@ -1131,6 +1100,48 @@ class Game {
         }
         
         this.generateScatteredTargets(7);
+    }
+
+    generateSafeTargets(targetCount) {
+        // Generate targets with collision checking specifically for early levels
+        console.log(`Attempting to generate ${targetCount} safe targets for level ${this.level}`);
+        
+        for (let i = 0; i < targetCount; i++) {
+            let attempts = 0;
+            let placed = false;
+            
+            while (attempts < 50 && !placed) {
+                const x = this.playArea.minX + 60 + Math.random() * (this.playArea.width - 120);
+                const y = this.playArea.minY + 60 + Math.random() * (this.playArea.height - 120);
+                
+                // Ensure target is not too close to any space body
+                const tooCloseToBody = this.spaceBodies.some(body => 
+                    new Vector2(x, y).distance(body.position) < body.radius + 60  // Extra buffer for early levels
+                );
+                
+                // Ensure target is not too close to other targets
+                const tooCloseToTarget = this.targets.some(target => 
+                    new Vector2(x, y).distance(target.position) < 80
+                );
+                
+                // Ensure target is not too close to cannon
+                const cannonDistance = this.cannon ? new Vector2(x, y).distance(this.cannon.position) : Infinity;
+                
+                if (!tooCloseToBody && !tooCloseToTarget && cannonDistance > 100) {
+                    this.targets.push(new Target(x, y, 'static'));
+                    placed = true;
+                    console.log(`Target ${i + 1} placed at (${x.toFixed(0)}, ${y.toFixed(0)})`);
+                }
+                
+                attempts++;
+            }
+            
+            if (!placed) {
+                console.warn(`Failed to place target ${i + 1} after 50 attempts`);
+            }
+        }
+        
+        console.log(`Successfully placed ${this.targets.length} targets`);
     }
 
     generateScatteredTargets(targetCount) {
