@@ -600,10 +600,10 @@ class Game {
         const isVertical = window.innerHeight > window.innerWidth || this.isMobile;
         
         if (isVertical || this.isMobile) {
-            // Mobile layout - use almost full screen with small margins
-            const margin = 20;
-            this.canvas.width = Math.min(400, availableWidth - margin);
-            this.canvas.height = Math.min(700, availableHeight - margin);
+            // Mobile layout - use full screen with minimal margins
+            const margin = 4;
+            this.canvas.width = availableWidth - margin;
+            this.canvas.height = availableHeight - margin;
         } else {
             // Desktop/horizontal layout  
             const maxWidth = availableWidth - 40;
@@ -1318,6 +1318,9 @@ class Game {
         // Increment rocket counters
         this.rocketsLaunched++;
         this.levelRockets++;
+        
+        // Update UI immediately after shooting
+        this.updateUI();
     }
 
     update(deltaTime) {
