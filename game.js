@@ -544,15 +544,15 @@ class Cannon {
         ctx.restore();
     }
 
-    shoot() {
+    shoot(launchVelocity = 120) {
         const muzzlePosition = this.position.add(new Vector2(
             Math.cos(this.angle) * this.length,
             Math.sin(this.angle) * this.length
         ));
         
         const velocity = new Vector2(
-            Math.cos(this.angle) * 120,
-            Math.sin(this.angle) * 120
+            Math.cos(this.angle) * launchVelocity,
+            Math.sin(this.angle) * launchVelocity
         );
         
         return new Bullet(muzzlePosition.x, muzzlePosition.y, velocity);
@@ -583,6 +583,13 @@ class Game {
         
         this.mousePosition = new Vector2(0, 0);
         this.isMobile = this.checkMobile();
+        
+        // Launch power system
+        this.isCharging = false;
+        this.chargeStartTime = 0;
+        this.minLaunchVelocity = 120; // Base velocity
+        this.maxLaunchVelocity = 240; // 2x base velocity
+        this.maxChargeTime = 1000; // 1 second for full charge
         
         this.setupEventListeners();
         this.initialize();
@@ -647,7 +654,7 @@ class Game {
                     touch.clientX - rect.left,
                     touch.clientY - rect.top
                 );
-                this.shoot();
+                this.startCharging();
             });
             
             this.canvas.addEventListener('touchmove', (e) => {
@@ -659,6 +666,16 @@ class Game {
                     touch.clientY - rect.top
                 );
             });
+            
+            this.canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                this.shoot();
+            });
+            
+            this.canvas.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                this.cancelCharge();
+            });
         } else {
             this.canvas.addEventListener('mousemove', (e) => {
                 const rect = this.canvas.getBoundingClientRect();
@@ -668,8 +685,13 @@ class Game {
                 );
             });
             
-            this.canvas.addEventListener('click', (e) => {
-                console.log('Click detected at:', this.mousePosition);
+            this.canvas.addEventListener('mousedown', (e) => {
+                console.log('Mouse down at:', this.mousePosition);
+                this.startCharging();
+            });
+            
+            this.canvas.addEventListener('mouseup', (e) => {
+                console.log('Mouse up, shooting');
                 this.shoot();
             });
         }
@@ -1562,9 +1584,35 @@ class Game {
     }
     
 
+    startCharging() {
+        if (!this.cannon) return;
+        this.isCharging = true;
+        this.chargeStartTime = Date.now();
+    }
+    
+    cancelCharge() {
+        this.isCharging = false;
+        this.chargeStartTime = 0;
+    }
+    
+    getCurrentLaunchVelocity() {
+        if (!this.isCharging) return this.minLaunchVelocity;
+        
+        const chargeTime = Date.now() - this.chargeStartTime;
+        const chargeRatio = Math.min(chargeTime / this.maxChargeTime, 1.0);
+        
+        return this.minLaunchVelocity + (this.maxLaunchVelocity - this.minLaunchVelocity) * chargeRatio;
+    }
+    
     shoot() {
-        const bullet = this.cannon.shoot();
+        if (!this.cannon || !this.isCharging) return;
+        
+        const launchVelocity = this.getCurrentLaunchVelocity();
+        const bullet = this.cannon.shoot(launchVelocity);
         this.bullets.push(bullet);
+        
+        // Reset charging state
+        this.cancelCharge();
         
         // Increment rocket counters
         this.rocketsLaunched++;
@@ -1572,6 +1620,8 @@ class Game {
         
         // Update UI immediately after shooting
         this.updateUI();
+        
+        console.log(`Rocket launched at velocity: ${launchVelocity.toFixed(0)}`);
     }
 
     update(deltaTime) {
@@ -1663,6 +1713,9 @@ class Game {
         // Draw trajectory preview
         this.drawTrajectoryPreview();
         
+        // Draw power meter when charging
+        this.drawPowerMeter();
+        
         // Draw completion message
         if (this.completionMessage) {
             this.drawCompletionMessage();
@@ -1672,7 +1725,9 @@ class Game {
     drawTrajectoryPreview() {
         if (!this.cannon) return;
         
-        const previewBullet = this.cannon.shoot();
+        // Use current charging velocity for trajectory preview
+        const currentVelocity = this.getCurrentLaunchVelocity();
+        const previewBullet = this.cannon.shoot(currentVelocity);
         const points = [];
         const steps = 50;
         const stepTime = 0.02;
@@ -1685,7 +1740,13 @@ class Game {
         }
         
         this.ctx.save();
-        this.ctx.strokeStyle = '#ffffff40';
+        
+        // Color trajectory based on power level
+        const powerRatio = (currentVelocity - this.minLaunchVelocity) / (this.maxLaunchVelocity - this.minLaunchVelocity);
+        const red = Math.floor(255 * powerRatio);
+        const green = Math.floor(255 * (1 - powerRatio));
+        this.ctx.strokeStyle = `rgba(${red}, ${green}, 100, 0.6)`;
+        
         this.ctx.lineWidth = 1;
         this.ctx.setLineDash([5, 5]);
         this.ctx.beginPath();
@@ -1698,6 +1759,44 @@ class Game {
         }
         
         this.ctx.stroke();
+        this.ctx.restore();
+    }
+    
+    drawPowerMeter() {
+        if (!this.isCharging) return;
+        
+        const powerRatio = (this.getCurrentLaunchVelocity() - this.minLaunchVelocity) / (this.maxLaunchVelocity - this.minLaunchVelocity);
+        
+        this.ctx.save();
+        
+        // Position near cannon or screen edge
+        const meterX = this.isMobile ? this.canvas.width - 60 : this.canvas.width - 80;
+        const meterY = this.isMobile ? 60 : 100;
+        const meterWidth = 15;
+        const meterHeight = 100;
+        
+        // Background
+        this.ctx.fillStyle = 'rgba(50, 50, 50, 0.8)';
+        this.ctx.fillRect(meterX, meterY, meterWidth, meterHeight);
+        
+        // Power bar
+        const powerHeight = meterHeight * powerRatio;
+        const red = Math.floor(255 * powerRatio);
+        const green = Math.floor(255 * (1 - powerRatio));
+        this.ctx.fillStyle = `rgb(${red}, ${green}, 50)`;
+        this.ctx.fillRect(meterX, meterY + (meterHeight - powerHeight), meterWidth, powerHeight);
+        
+        // Border
+        this.ctx.strokeStyle = '#ffffff';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(meterX, meterY, meterWidth, meterHeight);
+        
+        // Power percentage text
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = '12px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(`${Math.round(powerRatio * 100)}%`, meterX + meterWidth / 2, meterY + meterHeight + 15);
+        
         this.ctx.restore();
     }
 
