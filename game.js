@@ -691,6 +691,7 @@ class Game {
             // Use procedural generation as the primary method
             console.log(`Generating procedural level ${this.level}`);
             this.generateProceduralLevel();
+            console.log(`Level ${this.level} generated with ${this.spaceBodies.length} space bodies and ${this.targets.length} targets`);
         }
         
         this.updateUI();
@@ -762,25 +763,19 @@ class Game {
         };
         
         // Generate level based on progression
-        switch (this.level) {
-            case 1:
-                this.generateTutorialLevel();
-                break;
-            case 2:
-                this.generateSingleBodyLevel();
-                break;
-            case 3:
-                this.generateDoubleBodyLevel();
-                break;
-            case 4:
-                this.generateCorridorLevel();
-                break;
-            case 5:
-                this.generateAsteroidFieldLevel();
-                break;
-            default:
-                this.generateAdvancedLevel();
-                break;
+        if (this.level === 1) {
+            this.generateTutorialLevel();
+        } else if (this.level === 2) {
+            this.generateSingleBodyLevel();
+        } else if (this.level === 3) {
+            this.generateDoubleBodyLevel();
+        } else if (this.level === 4) {
+            this.generateCorridorLevel();
+        } else if (this.level === 5) {
+            this.generateAsteroidFieldLevel();
+        } else {
+            // Level 6 and beyond use advanced procedural generation
+            this.generateAdvancedLevel();
         }
     }
 
@@ -966,18 +961,29 @@ class Game {
     generateAdvancedLevel() {
         // Level 6+: Complex procedural levels
         const levelModifier = (this.level - 6) % 3;
+        console.log(`Generating advanced level ${this.level}, modifier: ${levelModifier}`);
         
         switch (levelModifier) {
             case 0:
+                console.log('Generating spiral level');
                 this.generateSpiraLevel();
                 break;
             case 1:
+                console.log('Generating binary system level');
                 this.generateBinarySystemLevel();
                 break;
             case 2:
+                console.log('Generating maze level');
                 this.generateMazeLevel();
                 break;
+            default:
+                console.error(`Unexpected levelModifier: ${levelModifier}`);
+                // Fallback to spiral level
+                this.generateSpiraLevel();
+                break;
         }
+        
+        console.log(`Advanced level generated with ${this.spaceBodies.length} bodies and ${this.targets.length} targets`);
     }
 
     generateSpiraLevel() {
@@ -1055,6 +1061,8 @@ class Game {
 
     generateScatteredTargets(targetCount) {
         // Generate targets scattered throughout the play area
+        console.log(`Attempting to generate ${targetCount} scattered targets`);
+        
         for (let i = 0; i < targetCount; i++) {
             let attempts = 0;
             let placed = false;
@@ -1080,12 +1088,18 @@ class Game {
                 if (!tooCloseToBody && !tooCloseToTarget && distanceFromCannon > minCannonDistance) {
                     this.targets.push(new Target(x, y, 'static'));
                     placed = true;
+                    console.log(`Target ${i + 1} placed at (${Math.round(x)}, ${Math.round(y)}) after ${attempts + 1} attempts`);
                 }
                 attempts++;
+            }
+            
+            if (!placed) {
+                console.warn(`Failed to place target ${i + 1} after 50 attempts`);
             }
         }
         
         // If we couldn't place enough targets, add fallback positions
+        console.log(`Currently have ${this.targets.length}/${targetCount} targets, adding fallbacks if needed`);
         while (this.targets.length < targetCount) {
             const fallbackPositions = [
                 { x: this.playArea.maxX - 80, y: this.playArea.minY + 80 },
@@ -1095,6 +1109,7 @@ class Game {
                 { x: this.playArea.centerX, y: this.playArea.maxY - 80 }
             ];
             
+            let fallbackPlaced = false;
             for (const pos of fallbackPositions) {
                 if (this.targets.length >= targetCount) break;
                 
@@ -1104,7 +1119,21 @@ class Game {
                 
                 if (!tooCloseToBody) {
                     this.targets.push(new Target(pos.x, pos.y, 'static'));
+                    fallbackPlaced = true;
+                    console.log(`Fallback target placed at (${Math.round(pos.x)}, ${Math.round(pos.y)})`);
                 }
+            }
+            
+            // Emergency exit to prevent infinite loop
+            if (!fallbackPlaced && this.targets.length < targetCount) {
+                console.warn(`Could not place enough targets, forcing placement of remaining ${targetCount - this.targets.length} targets`);
+                while (this.targets.length < targetCount) {
+                    // Force place targets in safe corners, regardless of body proximity
+                    const emergencyPos = fallbackPositions[(this.targets.length) % fallbackPositions.length];
+                    this.targets.push(new Target(emergencyPos.x, emergencyPos.y, 'static'));
+                    console.log(`Emergency target placed at (${Math.round(emergencyPos.x)}, ${Math.round(emergencyPos.y)})`);
+                }
+                break;
             }
         }
     }
