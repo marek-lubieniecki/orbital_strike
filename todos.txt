@@ -1,0 +1,11 @@
+- fix level design progression
+ - first level two targets no gravity
+ - second level one target behind a body
+ - third level interaction between two bodies
+ - think about introduction of more complex levels
+- fix target availability check
+ - maybe add a button to show how to reach a target
+- fix the "story" part
+ - it's not visible now
+ - either remove it completely or make it more visible
+-

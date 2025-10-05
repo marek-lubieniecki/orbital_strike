@@ -3,7 +3,18 @@
     "allow": [
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(python3:*)",
+      "Bash(curl:*)",
+      "Bash(node:*)",
+      "Bash(chmod:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install)",
+      "Bash(git rm:*)",
+      "Bash(rm:*)",
+      "Bash(git mv:*)",
+      "Bash(mv:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []

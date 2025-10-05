@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Orbital Strike</title>
+    <title>Orbital Strike - Refactored</title>
     <style>
         * {
             margin: 0;
@@ -39,7 +39,6 @@
             background: radial-gradient(circle at center, #001122 0%, #000000 100%);
         }
 
-
         #gameCanvas {
             display: block;
             cursor: crosshair;
@@ -64,7 +63,6 @@
             font-size: 14px;
             z-index: 10;
         }
-
 
         @media (max-width: 768px), (orientation: portrait) {
             body {
@@ -102,12 +100,7 @@
                 left: 50%;
                 transform: translateX(-50%);
             }
-            
-            #gameContainer {
-                border-width: 1px;
-            }
         }
-
     </style>
 </head>
 <body>
@@ -117,16 +110,14 @@
             <div id="ui">
                 <div>Level: <span id="level">1</span></div>
                 <div>Score: <span id="score">0</span></div>
-                <div>Targets: <span id="targets">5</span></div>
                 <div>Rockets: <span id="rockets">0</span></div>
             </div>
             <div id="instructions">
                 Hold to aim and charge power • Release to shoot • Gravity affects rocket trajectory
             </div>
         </div>
-        
     </div>
-    <script src="level-loader.js"></script>
-    <script src="game.js"></script>
+    
+    <script type="module" src="game.js"></script>
 </body>
 </html>
