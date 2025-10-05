@@ -39,8 +39,8 @@ export class Game {
         // Launch power system
         this.isCharging = false;
         this.chargeStartTime = 0;
-        this.minLaunchVelocity = 30;  // Very low velocity for taps
-        this.maxLaunchVelocity = 240;
+        this.minLaunchVelocity = 60;  // Doubled base velocity
+        this.maxLaunchVelocity = 240; // Reduced to half of doubled max
         this.maxChargeTime = 1500;    // Longer charge time needed for max power
         
         this.gameVersion = "v1.5.0 - Refactored";
@@ -73,21 +73,23 @@ export class Game {
         const container = document.getElementById('gameContainer');
         const availableWidth = window.innerWidth;
         const availableHeight = window.innerHeight;
-        
+
         const isVertical = window.innerHeight > window.innerWidth || this.isMobile;
-        
+
         if (isVertical || this.isMobile) {
             this.canvas.width = availableWidth;
             this.canvas.height = availableHeight;
+            container.style.border = 'none';
+            container.style.width = availableWidth + 'px';
+            container.style.height = availableHeight + 'px';
         } else {
             const maxWidth = availableWidth - 40;
             const maxHeight = availableHeight - 40;
             this.canvas.width = Math.min(800, maxWidth);
             this.canvas.height = Math.min(600, maxHeight);
+            container.style.width = this.canvas.width + 'px';
+            container.style.height = this.canvas.height + 'px';
         }
-        
-        container.style.width = this.canvas.width + 'px';
-        container.style.height = this.canvas.height + 'px';
     }
 
     checkMobile() {
@@ -152,19 +154,22 @@ export class Game {
     }
 
     async initializeLevel() {
+        console.log(`Initializing level ${this.level}`);
         this.spaceBodies = [];
         this.bullets = [];
         this.targets = [];
-        
+
         this.levelRockets = 0;
         this.cannon = null;
-        
+
         // Generate level (simplified procedural generation for now)
         this.generateSimpleLevel();
-        
+
+        console.log(`Level ${this.level} generated: ${this.targets.length} targets, ${this.spaceBodies.length} bodies`);
+
         // Show level introduction with AI narrative
         this.levelIntroduction = this.narrativeSystem.createLevelIntroduction(this.level);
-        
+
         this.updateUI();
     }
 
@@ -189,22 +194,273 @@ export class Game {
         this.setupDefaultCannonPosition();
         
         if (this.level === 1) {
-            // Tutorial level - just targets
-            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY - 50));
-            this.targets.push(new Target(this.playArea.centerX + 250, this.playArea.centerY));
-            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY + 50));
-        } else {
-            // Add a simple space body
+            // Level 1: Tutorial - two targets, no gravity
+            this.targets.push(new Target(this.playArea.centerX + 150, this.playArea.centerY - 50));
+            this.targets.push(new Target(this.playArea.centerX + 150, this.playArea.centerY + 50));
+        } else if (this.level === 2) {
+            // Level 2: One target behind a body
             const body = new SpaceBody(
-                this.playArea.centerX - 100,
+                this.playArea.centerX,
                 this.playArea.centerY,
                 'asteroid'
             );
             this.spaceBodies.push(body);
-            
-            // Add targets
+
+            // Target behind the body
+            this.targets.push(new Target(this.playArea.centerX + 150, this.playArea.centerY));
+        } else if (this.level === 3) {
+            // Level 3: Two bodies interaction
+            const body1 = new SpaceBody(
+                this.playArea.centerX - 80,
+                this.playArea.centerY - 60,
+                'asteroid'
+            );
+            const body2 = new SpaceBody(
+                this.playArea.centerX + 80,
+                this.playArea.centerY + 60,
+                'moon'
+            );
+            this.spaceBodies.push(body1);
+            this.spaceBodies.push(body2);
+
+            // Targets positioned for gravity assist
+            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY - 80));
+            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY + 80));
+        } else if (this.level === 4) {
+            // Level 4: Three body problem
+            const body1 = new SpaceBody(
+                this.playArea.centerX - 100,
+                this.playArea.centerY,
+                'planet'
+            );
+            const body2 = new SpaceBody(
+                this.playArea.centerX + 50,
+                this.playArea.centerY - 80,
+                'moon'
+            );
+            const body3 = new SpaceBody(
+                this.playArea.centerX + 50,
+                this.playArea.centerY + 80,
+                'asteroid'
+            );
+            this.spaceBodies.push(body1);
+            this.spaceBodies.push(body2);
+            this.spaceBodies.push(body3);
+
+            this.targets.push(new Target(this.playArea.centerX + 220, this.playArea.centerY - 50));
+            this.targets.push(new Target(this.playArea.centerX + 220, this.playArea.centerY + 50));
+        } else if (this.level === 5) {
+            // Level 5: Asteroid belt - many small bodies
+            for (let i = 0; i < 5; i++) {
+                const angle = (i / 5) * Math.PI * 2;
+                const radius = 80 + (i % 2) * 40;
+                const body = new SpaceBody(
+                    this.playArea.centerX + Math.cos(angle) * radius,
+                    this.playArea.centerY + Math.sin(angle) * radius,
+                    'asteroid'
+                );
+                this.spaceBodies.push(body);
+            }
+            this.targets.push(new Target(this.playArea.centerX + 220, this.playArea.centerY - 100));
+            this.targets.push(new Target(this.playArea.centerX + 220, this.playArea.centerY));
+            this.targets.push(new Target(this.playArea.centerX + 220, this.playArea.centerY + 100));
+        } else if (this.level === 6) {
+            // Level 6: Cannon mounted on moon - shoot while stationary
+            const moon = new SpaceBody(
+                this.playArea.minX + 100,
+                this.playArea.centerY,
+                'moon'
+            );
+            this.spaceBodies.push(moon);
+
+            // Obstacle in the middle
+            const asteroid = new SpaceBody(
+                this.playArea.centerX,
+                this.playArea.centerY,
+                'asteroid'
+            );
+            this.spaceBodies.push(asteroid);
+
+            // Mount cannon on the moon (facing right)
+            this.setupMountedCannon(moon, 0);
+
+            // Targets on the right side
+            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY - 80));
+            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY + 80));
+        } else if (this.level === 7) {
+            // Level 7: Planet with moons
+            const planet = new SpaceBody(
+                this.playArea.centerX,
+                this.playArea.centerY,
+                'gas_giant'
+            );
+            this.spaceBodies.push(planet);
+
+            // Moons around the planet
+            for (let i = 0; i < 3; i++) {
+                const angle = (i / 3) * Math.PI * 2;
+                const moon = new SpaceBody(
+                    this.playArea.centerX + Math.cos(angle) * 80,
+                    this.playArea.centerY + Math.sin(angle) * 80,
+                    'moon'
+                );
+                this.spaceBodies.push(moon);
+            }
+
+            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY - 80));
+            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY + 80));
+        } else if (this.level === 8) {
+            // Level 8: Star system
+            const star = new SpaceBody(
+                this.playArea.centerX - 150,
+                this.playArea.centerY,
+                'star'
+            );
+            const planet = new SpaceBody(
+                this.playArea.centerX + 50,
+                this.playArea.centerY - 70,
+                'planet'
+            );
+            const dwarf = new SpaceBody(
+                this.playArea.centerX + 50,
+                this.playArea.centerY + 70,
+                'dwarf_planet'
+            );
+            this.spaceBodies.push(star);
+            this.spaceBodies.push(planet);
+            this.spaceBodies.push(dwarf);
+
+            this.targets.push(new Target(this.playArea.centerX + 220, this.playArea.centerY - 50));
+            this.targets.push(new Target(this.playArea.centerX + 220, this.playArea.centerY + 50));
+        } else if (this.level === 9) {
+            // Level 9: Cannon on orbiting moon!
+            const planet = new SpaceBody(
+                this.playArea.centerX,
+                this.playArea.centerY,
+                'planet'
+            );
+            this.spaceBodies.push(planet);
+
+            // Create an orbiting moon with the cannon mounted on it
+            const orbitRadius = 120;
+            const moon = new SpaceBody(
+                this.playArea.centerX + orbitRadius,
+                this.playArea.centerY,
+                'moon',
+                planet.position,  // orbit center
+                orbitRadius,      // orbit radius
+                0.5               // orbital speed (radians per second)
+            );
+            this.spaceBodies.push(moon);
+
+            // Mount cannon on the orbiting moon
+            this.setupMountedCannon(moon, Math.PI); // Facing away from planet
+
+            // Targets positioned around the planet
             this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY - 100));
-            this.targets.push(new Target(this.playArea.centerX + 250, this.playArea.centerY + 100));
+            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY + 100));
+            this.targets.push(new Target(this.playArea.centerX - 200, this.playArea.centerY));
+        } else if (this.level === 10) {
+            // Level 10: Multiple orbiting cannons would be too hard, back to stationary mounted
+            const asteroid1 = new SpaceBody(
+                this.playArea.minX + 80,
+                this.playArea.centerY - 80,
+                'asteroid'
+            );
+            const asteroid2 = new SpaceBody(
+                this.playArea.minX + 80,
+                this.playArea.centerY + 80,
+                'dwarf_planet'
+            );
+            this.spaceBodies.push(asteroid1);
+            this.spaceBodies.push(asteroid2);
+
+            // Cannon on first asteroid
+            this.setupMountedCannon(asteroid1, 0);
+
+            // Obstacles
+            const planet = new SpaceBody(
+                this.playArea.centerX,
+                this.playArea.centerY,
+                'gas_giant'
+            );
+            this.spaceBodies.push(planet);
+
+            // Targets scattered
+            this.targets.push(new Target(this.playArea.centerX + 180, this.playArea.centerY - 120));
+            this.targets.push(new Target(this.playArea.centerX + 180, this.playArea.centerY));
+            this.targets.push(new Target(this.playArea.centerX + 180, this.playArea.centerY + 120));
+        } else {
+            // Level 11+: Chaotic systems - increasingly complex
+            const levelMod = this.level % 4;
+            const complexity = Math.min(Math.floor(this.level / 2), 6);
+
+            if (levelMod === 0) {
+                // Dense asteroid field
+                for (let i = 0; i < complexity; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = 60 + Math.random() * 80;
+                    const types = ['asteroid', 'moon', 'dwarf_planet'];
+                    const body = new SpaceBody(
+                        this.playArea.centerX + Math.cos(angle) * radius,
+                        this.playArea.centerY + Math.sin(angle) * radius,
+                        types[i % types.length]
+                    );
+                    this.spaceBodies.push(body);
+                }
+            } else if (levelMod === 1) {
+                // Multiple planets
+                for (let i = 0; i < Math.min(complexity, 4); i++) {
+                    const angle = (i / Math.min(complexity, 4)) * Math.PI * 2;
+                    const radius = 90 + (i % 2) * 40;
+                    const body = new SpaceBody(
+                        this.playArea.centerX + Math.cos(angle) * radius,
+                        this.playArea.centerY + Math.sin(angle) * radius,
+                        i % 2 === 0 ? 'planet' : 'gas_giant'
+                    );
+                    this.spaceBodies.push(body);
+                }
+            } else if (levelMod === 2) {
+                // Star with orbiting bodies
+                const star = new SpaceBody(
+                    this.playArea.centerX - 100,
+                    this.playArea.centerY,
+                    'star'
+                );
+                this.spaceBodies.push(star);
+                for (let i = 0; i < Math.min(complexity - 1, 4); i++) {
+                    const angle = (i / Math.min(complexity - 1, 4)) * Math.PI * 2;
+                    const body = new SpaceBody(
+                        this.playArea.centerX + Math.cos(angle) * 100,
+                        this.playArea.centerY + Math.sin(angle) * 100,
+                        ['planet', 'moon', 'dwarf_planet'][i % 3]
+                    );
+                    this.spaceBodies.push(body);
+                }
+            } else {
+                // Mixed chaos
+                for (let i = 0; i < complexity; i++) {
+                    const angle = (i / complexity) * Math.PI * 2;
+                    const radius = 70 + (i % 3) * 30;
+                    const types = ['asteroid', 'moon', 'dwarf_planet', 'planet', 'gas_giant'];
+                    const body = new SpaceBody(
+                        this.playArea.centerX + Math.cos(angle) * radius,
+                        this.playArea.centerY + Math.sin(angle) * radius,
+                        types[i % types.length]
+                    );
+                    this.spaceBodies.push(body);
+                }
+            }
+
+            // Targets positioned around the chaos
+            const numTargets = Math.min(2 + Math.floor(this.level / 4), 5);
+            for (let i = 0; i < numTargets; i++) {
+                const angle = (i / numTargets) * Math.PI * 2;
+                this.targets.push(new Target(
+                    this.playArea.centerX + Math.cos(angle) * 220,
+                    this.playArea.centerY + Math.sin(angle) * 220
+                ));
+            }
         }
     }
 
@@ -213,6 +469,10 @@ export class Game {
             this.playArea.minX + 50,
             this.playArea.centerY
         );
+    }
+
+    setupMountedCannon(spaceBody, mountAngle = Math.PI) {
+        this.cannon = new Cannon(0, 0, spaceBody, mountAngle);
     }
 
     startCharging() {
@@ -251,16 +511,18 @@ export class Game {
     }
 
     update(deltaTime) {
+        // Update space bodies first (they may have cannons mounted)
+        this.spaceBodies.forEach(body => body.update(deltaTime));
+
+        // Update cannon (position if mounted, aim always)
         if (this.cannon) {
+            this.cannon.update();
             this.cannon.aimAt(this.mousePosition);
         }
 
         // Update message timers using MessageRenderer
         this.levelIntroduction = this.messageRenderer.updateLevelIntroduction(this.levelIntroduction, deltaTime);
         this.completionMessage = this.messageRenderer.updateCompletionMessage(this.completionMessage, deltaTime);
-
-        // Update space bodies
-        this.spaceBodies.forEach(body => body.update(deltaTime));
         
         // Update bullets
         this.bullets.forEach(bullet => bullet.update(this.spaceBodies, deltaTime, this.canvas.width, this.canvas.height));
@@ -298,14 +560,16 @@ export class Game {
     checkLevelCompletion() {
         if (this.targets.every(target => target.hit) && !this.levelCompleted) {
             this.levelCompleted = true;
-            
+            console.log(`Level ${this.level} completed!`);
+
             const efficiencyBonus = this.calculateEfficiencyBonus();
             this.score += efficiencyBonus;
-            
+
             const efficiencyRating = this.getEfficiencyRating();
             this.showLevelCompletionMessage(efficiencyRating, efficiencyBonus);
-            
+
             setTimeout(async () => {
+                console.log(`Moving to level ${this.level + 1}`);
                 this.level++;
                 await this.initializeLevel();
                 this.levelCompleted = false;
@@ -386,25 +650,36 @@ export class Game {
 
     drawPowerMeter() {
         if (!this.isCharging) return;
-        
+
         const chargeTime = Date.now() - this.chargeStartTime;
         const chargeFraction = Math.min(chargeTime / this.maxChargeTime, 1);
-        
-        const meterWidth = 200;
-        const meterHeight = 20;
+
+        const meterWidth = 300;
+        const meterHeight = 30;
         const meterX = this.canvas.width / 2 - meterWidth / 2;
         const meterY = 50;
-        
+
         this.ctx.fillStyle = '#333';
         this.ctx.fillRect(meterX, meterY, meterWidth, meterHeight);
-        
+
         const fillWidth = meterWidth * chargeFraction;
         const color = chargeFraction < 0.5 ? '#ffaa00' : '#ff4400';
         this.ctx.fillStyle = color;
         this.ctx.fillRect(meterX, meterY, fillWidth, meterHeight);
-        
+
         this.ctx.strokeStyle = '#fff';
+        this.ctx.lineWidth = 2;
         this.ctx.strokeRect(meterX, meterY, meterWidth, meterHeight);
+
+        // Draw power percentage text
+        this.ctx.save();
+        this.ctx.fillStyle = '#fff';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(`${Math.round(chargeFraction * 100)}%`,
+            meterX + meterWidth / 2, meterY + meterHeight / 2);
+        this.ctx.restore();
     }
 
     drawVersion() {

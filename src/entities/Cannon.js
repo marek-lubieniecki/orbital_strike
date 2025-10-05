@@ -2,11 +2,29 @@ import { Vector2 } from '../core/Vector2.js';
 import { Bullet } from './Bullet.js';
 
 export class Cannon {
-    constructor(x, y) {
+    constructor(x, y, mountedBody = null, mountAngle = 0) {
         this.position = new Vector2(x, y);
         this.angle = 0;
         this.length = 40;
         this.width = 8;
+        this.isMounted = mountedBody !== null;
+        this.mountedBody = mountedBody;
+        this.mountAngle = mountAngle;
+
+        // If mounted, set initial position
+        if (this.isMounted) {
+            this.update();
+        }
+    }
+
+    mountOn(spaceBody, angle = 0) {
+        this.isMounted = true;
+        this.mountedBody = spaceBody;
+        this.mountAngle = angle;
+        this.update();
+    }
+
+    unmount() {
         this.isMounted = false;
         this.mountedBody = null;
         this.mountAngle = 0;

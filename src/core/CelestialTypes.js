@@ -42,6 +42,27 @@ export const CELESTIAL_TYPES = {
             "Ceres is the only dwarf planet in the asteroid belt"
         ]
     },
+    moon: {
+        name: "Moon",
+        mass: 7.34e22, // kg (Earth's Moon mass)
+        diameter: 3474800, // meters (Moon diameter)
+        gameplayRadius: 18,
+        gameplayMass: 25,
+        color: '#C0C0C0',
+        description: "Natural satellites that orbit planets",
+        realWorldExamples: [
+            { name: "Moon (Earth)", diameter: "3,475 km", mass: "7.34×10²² kg" },
+            { name: "Ganymede (Jupiter)", diameter: "5,268 km", mass: "1.48×10²³ kg" },
+            { name: "Titan (Saturn)", diameter: "5,150 km", mass: "1.35×10²³ kg" }
+        ],
+        facts: [
+            "The Moon is Earth's only natural satellite",
+            "It takes the Moon 27.3 days to orbit Earth",
+            "The same side of the Moon always faces Earth",
+            "Jupiter has over 80 moons",
+            "Titan has a thick atmosphere and liquid methane lakes"
+        ]
+    },
     planet: {
         name: "Planet",
         mass: 5.97e24, // kg (Earth mass)

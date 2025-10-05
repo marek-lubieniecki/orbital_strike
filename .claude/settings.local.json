@@ -14,7 +14,8 @@
       "Bash(rm:*)",
       "Bash(git mv:*)",
       "Bash(mv:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []
