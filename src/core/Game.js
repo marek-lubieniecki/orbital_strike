@@ -43,7 +43,7 @@ export class Game {
         this.maxLaunchVelocity = 240; // Reduced to half of doubled max
         this.maxChargeTime = 1500;    // Longer charge time needed for max power
         
-        this.gameVersion = "v1.5.0 - Refactored";
+        this.gameVersion = "v1.6.0 - Responsive";
         
         this.setupEventListeners();
         this.initialize();
@@ -77,16 +77,32 @@ export class Game {
         const isVertical = window.innerHeight > window.innerWidth || this.isMobile;
 
         if (isVertical || this.isMobile) {
+            // Use full viewport on mobile/portrait
             this.canvas.width = availableWidth;
             this.canvas.height = availableHeight;
             container.style.border = 'none';
             container.style.width = availableWidth + 'px';
             container.style.height = availableHeight + 'px';
         } else {
+            // On desktop, use responsive sizing with max constraints
             const maxWidth = availableWidth - 40;
             const maxHeight = availableHeight - 40;
-            this.canvas.width = Math.min(800, maxWidth);
-            this.canvas.height = Math.min(600, maxHeight);
+
+            // Use a 4:3 aspect ratio preference, but adapt to screen
+            const targetAspect = 4 / 3;
+            let width = maxWidth;
+            let height = maxHeight;
+
+            if (width / height > targetAspect) {
+                // Too wide, constrain by height
+                width = Math.min(height * targetAspect, maxWidth);
+            } else {
+                // Too tall, constrain by width
+                height = Math.min(width / targetAspect, maxHeight);
+            }
+
+            this.canvas.width = Math.floor(width);
+            this.canvas.height = Math.floor(height);
             container.style.width = this.canvas.width + 'px';
             container.style.height = this.canvas.height + 'px';
         }
@@ -175,10 +191,15 @@ export class Game {
 
     generateSimpleLevel() {
         // Simple level generation for testing
-        const safeMargin = 50;
         const canvasW = this.canvas.width;
         const canvasH = this.canvas.height;
-        
+
+        // Use proportional margins (5% of smallest dimension)
+        const safeMargin = Math.max(30, Math.min(canvasW, canvasH) * 0.05);
+
+        // Calculate a scaling factor based on canvas size (normalized to 800x600)
+        this.scaleFactor = Math.min(canvasW / 800, canvasH / 600);
+
         this.playArea = {
             minX: safeMargin,
             minY: safeMargin,
@@ -190,13 +211,16 @@ export class Game {
             height: canvasH - 2 * safeMargin
         };
 
+        // Helper function to scale distances
+        const scale = (value) => value * this.scaleFactor;
+
         // Setup cannon
         this.setupDefaultCannonPosition();
-        
+
         if (this.level === 1) {
             // Level 1: Tutorial - two targets, no gravity
-            this.targets.push(new Target(this.playArea.centerX + 150, this.playArea.centerY - 50));
-            this.targets.push(new Target(this.playArea.centerX + 150, this.playArea.centerY + 50));
+            this.targets.push(new Target(this.playArea.centerX + scale(150), this.playArea.centerY - scale(50)));
+            this.targets.push(new Target(this.playArea.centerX + scale(150), this.playArea.centerY + scale(50)));
         } else if (this.level === 2) {
             // Level 2: One target behind a body
             const body = new SpaceBody(
@@ -207,53 +231,53 @@ export class Game {
             this.spaceBodies.push(body);
 
             // Target behind the body
-            this.targets.push(new Target(this.playArea.centerX + 150, this.playArea.centerY));
+            this.targets.push(new Target(this.playArea.centerX + scale(150), this.playArea.centerY));
         } else if (this.level === 3) {
             // Level 3: Two bodies interaction
             const body1 = new SpaceBody(
-                this.playArea.centerX - 80,
-                this.playArea.centerY - 60,
+                this.playArea.centerX - scale(80),
+                this.playArea.centerY - scale(60),
                 'asteroid'
             );
             const body2 = new SpaceBody(
-                this.playArea.centerX + 80,
-                this.playArea.centerY + 60,
+                this.playArea.centerX + scale(80),
+                this.playArea.centerY + scale(60),
                 'moon'
             );
             this.spaceBodies.push(body1);
             this.spaceBodies.push(body2);
 
             // Targets positioned for gravity assist
-            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY - 80));
-            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY + 80));
+            this.targets.push(new Target(this.playArea.centerX + scale(200), this.playArea.centerY - scale(80)));
+            this.targets.push(new Target(this.playArea.centerX + scale(200), this.playArea.centerY + scale(80)));
         } else if (this.level === 4) {
             // Level 4: Three body problem
             const body1 = new SpaceBody(
-                this.playArea.centerX - 100,
+                this.playArea.centerX - scale(100),
                 this.playArea.centerY,
                 'planet'
             );
             const body2 = new SpaceBody(
-                this.playArea.centerX + 50,
-                this.playArea.centerY - 80,
+                this.playArea.centerX + scale(50),
+                this.playArea.centerY - scale(80),
                 'moon'
             );
             const body3 = new SpaceBody(
-                this.playArea.centerX + 50,
-                this.playArea.centerY + 80,
+                this.playArea.centerX + scale(50),
+                this.playArea.centerY + scale(80),
                 'asteroid'
             );
             this.spaceBodies.push(body1);
             this.spaceBodies.push(body2);
             this.spaceBodies.push(body3);
 
-            this.targets.push(new Target(this.playArea.centerX + 220, this.playArea.centerY - 50));
-            this.targets.push(new Target(this.playArea.centerX + 220, this.playArea.centerY + 50));
+            this.targets.push(new Target(this.playArea.centerX + scale(220), this.playArea.centerY - scale(50)));
+            this.targets.push(new Target(this.playArea.centerX + scale(220), this.playArea.centerY + scale(50)));
         } else if (this.level === 5) {
             // Level 5: Asteroid belt - many small bodies
             for (let i = 0; i < 5; i++) {
                 const angle = (i / 5) * Math.PI * 2;
-                const radius = 80 + (i % 2) * 40;
+                const radius = scale(80 + (i % 2) * 40);
                 const body = new SpaceBody(
                     this.playArea.centerX + Math.cos(angle) * radius,
                     this.playArea.centerY + Math.sin(angle) * radius,
@@ -261,13 +285,13 @@ export class Game {
                 );
                 this.spaceBodies.push(body);
             }
-            this.targets.push(new Target(this.playArea.centerX + 220, this.playArea.centerY - 100));
-            this.targets.push(new Target(this.playArea.centerX + 220, this.playArea.centerY));
-            this.targets.push(new Target(this.playArea.centerX + 220, this.playArea.centerY + 100));
+            this.targets.push(new Target(this.playArea.centerX + scale(220), this.playArea.centerY - scale(100)));
+            this.targets.push(new Target(this.playArea.centerX + scale(220), this.playArea.centerY));
+            this.targets.push(new Target(this.playArea.centerX + scale(220), this.playArea.centerY + scale(100)));
         } else if (this.level === 6) {
             // Level 6: Cannon mounted on moon - shoot while stationary
             const moon = new SpaceBody(
-                this.playArea.minX + 100,
+                this.playArea.minX + scale(100),
                 this.playArea.centerY,
                 'moon'
             );
@@ -285,8 +309,8 @@ export class Game {
             this.setupMountedCannon(moon, 0);
 
             // Targets on the right side
-            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY - 80));
-            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY + 80));
+            this.targets.push(new Target(this.playArea.centerX + scale(200), this.playArea.centerY - scale(80)));
+            this.targets.push(new Target(this.playArea.centerX + scale(200), this.playArea.centerY + scale(80)));
         } else if (this.level === 7) {
             // Level 7: Planet with moons
             const planet = new SpaceBody(
@@ -300,38 +324,38 @@ export class Game {
             for (let i = 0; i < 3; i++) {
                 const angle = (i / 3) * Math.PI * 2;
                 const moon = new SpaceBody(
-                    this.playArea.centerX + Math.cos(angle) * 80,
-                    this.playArea.centerY + Math.sin(angle) * 80,
+                    this.playArea.centerX + Math.cos(angle) * scale(80),
+                    this.playArea.centerY + Math.sin(angle) * scale(80),
                     'moon'
                 );
                 this.spaceBodies.push(moon);
             }
 
-            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY - 80));
-            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY + 80));
+            this.targets.push(new Target(this.playArea.centerX + scale(200), this.playArea.centerY - scale(80)));
+            this.targets.push(new Target(this.playArea.centerX + scale(200), this.playArea.centerY + scale(80)));
         } else if (this.level === 8) {
             // Level 8: Star system
             const star = new SpaceBody(
-                this.playArea.centerX - 150,
+                this.playArea.centerX - scale(150),
                 this.playArea.centerY,
                 'star'
             );
             const planet = new SpaceBody(
-                this.playArea.centerX + 50,
-                this.playArea.centerY - 70,
+                this.playArea.centerX + scale(50),
+                this.playArea.centerY - scale(70),
                 'planet'
             );
             const dwarf = new SpaceBody(
-                this.playArea.centerX + 50,
-                this.playArea.centerY + 70,
+                this.playArea.centerX + scale(50),
+                this.playArea.centerY + scale(70),
                 'dwarf_planet'
             );
             this.spaceBodies.push(star);
             this.spaceBodies.push(planet);
             this.spaceBodies.push(dwarf);
 
-            this.targets.push(new Target(this.playArea.centerX + 220, this.playArea.centerY - 50));
-            this.targets.push(new Target(this.playArea.centerX + 220, this.playArea.centerY + 50));
+            this.targets.push(new Target(this.playArea.centerX + scale(220), this.playArea.centerY - scale(50)));
+            this.targets.push(new Target(this.playArea.centerX + scale(220), this.playArea.centerY + scale(50)));
         } else if (this.level === 9) {
             // Level 9: Cannon on orbiting moon!
             const planet = new SpaceBody(
@@ -342,7 +366,7 @@ export class Game {
             this.spaceBodies.push(planet);
 
             // Create an orbiting moon with the cannon mounted on it
-            const orbitRadius = 120;
+            const orbitRadius = scale(120);
             const moon = new SpaceBody(
                 this.playArea.centerX + orbitRadius,
                 this.playArea.centerY,
@@ -357,19 +381,19 @@ export class Game {
             this.setupMountedCannon(moon, Math.PI); // Facing away from planet
 
             // Targets positioned around the planet
-            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY - 100));
-            this.targets.push(new Target(this.playArea.centerX + 200, this.playArea.centerY + 100));
-            this.targets.push(new Target(this.playArea.centerX - 200, this.playArea.centerY));
+            this.targets.push(new Target(this.playArea.centerX + scale(200), this.playArea.centerY - scale(100)));
+            this.targets.push(new Target(this.playArea.centerX + scale(200), this.playArea.centerY + scale(100)));
+            this.targets.push(new Target(this.playArea.centerX - scale(200), this.playArea.centerY));
         } else if (this.level === 10) {
             // Level 10: Multiple orbiting cannons would be too hard, back to stationary mounted
             const asteroid1 = new SpaceBody(
-                this.playArea.minX + 80,
-                this.playArea.centerY - 80,
+                this.playArea.minX + scale(80),
+                this.playArea.centerY - scale(80),
                 'asteroid'
             );
             const asteroid2 = new SpaceBody(
-                this.playArea.minX + 80,
-                this.playArea.centerY + 80,
+                this.playArea.minX + scale(80),
+                this.playArea.centerY + scale(80),
                 'dwarf_planet'
             );
             this.spaceBodies.push(asteroid1);
@@ -387,9 +411,9 @@ export class Game {
             this.spaceBodies.push(planet);
 
             // Targets scattered
-            this.targets.push(new Target(this.playArea.centerX + 180, this.playArea.centerY - 120));
-            this.targets.push(new Target(this.playArea.centerX + 180, this.playArea.centerY));
-            this.targets.push(new Target(this.playArea.centerX + 180, this.playArea.centerY + 120));
+            this.targets.push(new Target(this.playArea.centerX + scale(180), this.playArea.centerY - scale(120)));
+            this.targets.push(new Target(this.playArea.centerX + scale(180), this.playArea.centerY));
+            this.targets.push(new Target(this.playArea.centerX + scale(180), this.playArea.centerY + scale(120)));
         } else {
             // Level 11+: Chaotic systems - increasingly complex
             const levelMod = this.level % 4;
@@ -399,7 +423,7 @@ export class Game {
                 // Dense asteroid field
                 for (let i = 0; i < complexity; i++) {
                     const angle = Math.random() * Math.PI * 2;
-                    const radius = 60 + Math.random() * 80;
+                    const radius = scale(60 + Math.random() * 80);
                     const types = ['asteroid', 'moon', 'dwarf_planet'];
                     const body = new SpaceBody(
                         this.playArea.centerX + Math.cos(angle) * radius,
@@ -412,7 +436,7 @@ export class Game {
                 // Multiple planets
                 for (let i = 0; i < Math.min(complexity, 4); i++) {
                     const angle = (i / Math.min(complexity, 4)) * Math.PI * 2;
-                    const radius = 90 + (i % 2) * 40;
+                    const radius = scale(90 + (i % 2) * 40);
                     const body = new SpaceBody(
                         this.playArea.centerX + Math.cos(angle) * radius,
                         this.playArea.centerY + Math.sin(angle) * radius,
@@ -423,7 +447,7 @@ export class Game {
             } else if (levelMod === 2) {
                 // Star with orbiting bodies
                 const star = new SpaceBody(
-                    this.playArea.centerX - 100,
+                    this.playArea.centerX - scale(100),
                     this.playArea.centerY,
                     'star'
                 );
@@ -431,8 +455,8 @@ export class Game {
                 for (let i = 0; i < Math.min(complexity - 1, 4); i++) {
                     const angle = (i / Math.min(complexity - 1, 4)) * Math.PI * 2;
                     const body = new SpaceBody(
-                        this.playArea.centerX + Math.cos(angle) * 100,
-                        this.playArea.centerY + Math.sin(angle) * 100,
+                        this.playArea.centerX + Math.cos(angle) * scale(100),
+                        this.playArea.centerY + Math.sin(angle) * scale(100),
                         ['planet', 'moon', 'dwarf_planet'][i % 3]
                     );
                     this.spaceBodies.push(body);
@@ -441,7 +465,7 @@ export class Game {
                 // Mixed chaos
                 for (let i = 0; i < complexity; i++) {
                     const angle = (i / complexity) * Math.PI * 2;
-                    const radius = 70 + (i % 3) * 30;
+                    const radius = scale(70 + (i % 3) * 30);
                     const types = ['asteroid', 'moon', 'dwarf_planet', 'planet', 'gas_giant'];
                     const body = new SpaceBody(
                         this.playArea.centerX + Math.cos(angle) * radius,
@@ -457,16 +481,17 @@ export class Game {
             for (let i = 0; i < numTargets; i++) {
                 const angle = (i / numTargets) * Math.PI * 2;
                 this.targets.push(new Target(
-                    this.playArea.centerX + Math.cos(angle) * 220,
-                    this.playArea.centerY + Math.sin(angle) * 220
+                    this.playArea.centerX + Math.cos(angle) * scale(220),
+                    this.playArea.centerY + Math.sin(angle) * scale(220)
                 ));
             }
         }
     }
 
     setupDefaultCannonPosition() {
+        const offset = 50 * this.scaleFactor;
         this.cannon = new Cannon(
-            this.playArea.minX + 50,
+            this.playArea.minX + offset,
             this.playArea.centerY
         );
     }
