@@ -43,7 +43,7 @@ export class Game {
         this.maxLaunchVelocity = 240; // Reduced to half of doubled max
         this.maxChargeTime = 1500;    // Longer charge time needed for max power
         
-        this.gameVersion = "v1.6.0 - Responsive";
+        this.gameVersion = "v1.6.1 - Responsive";
         
         this.setupEventListeners();
         this.initialize();
@@ -197,8 +197,13 @@ export class Game {
         // Use proportional margins (5% of smallest dimension)
         const safeMargin = Math.max(30, Math.min(canvasW, canvasH) * 0.05);
 
-        // Calculate a scaling factor based on canvas size (normalized to 800x600)
-        this.scaleFactor = Math.min(canvasW / 800, canvasH / 600);
+        // Calculate scaling factors for both dimensions
+        const scaleX = canvasW / 800;
+        const scaleY = canvasH / 600;
+
+        // Use average of both dimensions for more balanced scaling
+        // On mobile (portrait), this allows better use of vertical space
+        this.scaleFactor = (scaleX + scaleY) / 2;
 
         this.playArea = {
             minX: safeMargin,

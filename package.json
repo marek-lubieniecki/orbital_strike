@@ -1,6 +1,6 @@
 {
   "name": "orbit-strike",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "AI-powered orbital mechanics game with gravity-based trajectory puzzles",
   "main": "src/index.js",
   "type": "module",
